@@ -21,7 +21,10 @@ public partial class WallpaperStudio : Window
     private const double VpW = 480, VpH = 106; // crop viewport = pill aspect
 
     private readonly MainWindow _main;
-    private SD.Bitmap? _source;
+    private readonly List<SD.Bitmap> _frames = new();
+    private int _frameIndex;
+    private readonly System.Collections.ObjectModel.ObservableCollection<BitmapImage> _thumbs = new();
+    private readonly List<(int Index, SD.Bitmap Snap)> _undo = new();
     private double _zoom = 1.0; // >= 1 (cover)
     private double _cx;         // crop center in source px
     private double _cy;
@@ -31,14 +34,53 @@ public partial class WallpaperStudio : Window
     private readonly DispatcherTimer _animTimer = new() { Interval = TimeSpan.FromMilliseconds(33) };
     private double _animT;
     private bool _exporting;
+    private System.Windows.Media.Color _penColor = Colors.White;
+
+    private SD.Bitmap? Current => _frames.Count == 0 ? null : _frames[Math.Clamp(_frameIndex, 0, _frames.Count - 1)];
 
     public WallpaperStudio(MainWindow main)
     {
         _main = main;
         InitializeComponent();
+        FilmStrip.ItemsSource = _thumbs;
+        PenColorBtn.Background = new SolidColorBrush(_penColor);
         _animTimer.Tick += (_, _) => AnimTick();
         _ready = true;
         UpdateFrameInfo();
+    }
+
+    private static SD.Bitmap To32bpp(SD.Image src)
+    {
+        var bmp = new SD.Bitmap(src.Width, src.Height, SDI.PixelFormat.Format32bppArgb);
+        using var g = SD.Graphics.FromImage(bmp);
+        g.DrawImage(src, 0, 0, src.Width, src.Height);
+        return bmp;
+    }
+
+    private void ResetView()
+    {
+        var cur = Current;
+        _zoom = 1.0;
+        _cx = (cur?.Width ?? 2) / 2.0;
+        _cy = (cur?.Height ?? 2) / 2.0;
+        ZoomSlider.Value = 100;
+    }
+
+    private void RebuildThumbs()
+    {
+        _thumbs.Clear();
+        foreach (var f in _frames)
+        {
+            using var t = RenderFrame(f, 120, 28, 1.0, f.Width / 2.0, f.Height / 2.0, ReadAdjust());
+            _thumbs.Add(t == null ? BlankThumb() : ToBitmapImage(t));
+        }
+        FilmStrip.SelectedIndex = _frames.Count == 0 ? -1 : Math.Clamp(_frameIndex, 0, _frames.Count - 1);
+    }
+
+    private static BitmapImage BlankThumb()
+    {
+        using var b = new SD.Bitmap(120, 28, SDI.PixelFormat.Format24bppRgb);
+        return ToBitmapImage(b);
     }
 
     // ---------- Source ----------
@@ -58,13 +100,13 @@ public partial class WallpaperStudio : Window
     {
         try
         {
-            _source?.Dispose();
-            _source = (SD.Bitmap)SD.Image.FromFile(path);
-            _zoom = 1.0;
-            _cx = _source.Width / 2.0;
-            _cy = _source.Height / 2.0;
-            ZoomSlider.Value = 100;
+            ClearFrames();
+            using var img = SD.Image.FromFile(path);
+            _frames.Add(To32bpp(img));
+            _frameIndex = 0;
+            ResetView();
             StatusText.Text = System.IO.Path.GetFileName(path);
+            RebuildThumbs();
             UpdateFrameInfo();
             RenderView();
             return true;
@@ -72,52 +114,113 @@ public partial class WallpaperStudio : Window
         catch (Exception ex) { StatusText.Text = "Could not open: " + ex.Message; return false; }
     }
 
-    private double BaseScale()
+    private void ClearFrames()
     {
-        if (_source == null) return 1;
-        return Math.Max(VpW / _source.Width, VpH / _source.Height);
+        foreach (var f in _frames) f.Dispose();
+        _frames.Clear();
+        _frameIndex = 0;
+        _undo.Clear();
+    }
+
+    private double BaseScale(SD.Bitmap src) => Math.Max(VpW / src.Width, VpH / src.Height);
+    private double BaseScale() => Current == null ? 1 : BaseScale(Current);
+
+    private void ComputeCrop(SD.Bitmap src, double zoom, double cx, double cy,
+        out double x, out double y, out double cw, out double ch)
+    {
+        double b = BaseScale(src);
+        cw = Math.Min(VpW / (b * zoom), src.Width);
+        ch = Math.Min(VpH / (b * zoom), src.Height);
+        double qx = Math.Clamp(cx, cw / 2, src.Width - cw / 2);
+        double qy = Math.Clamp(cy, ch / 2, src.Height - ch / 2);
+        if (src.Width <= cw) qx = src.Width / 2;
+        if (src.Height <= ch) qy = src.Height / 2;
+        x = Math.Clamp(qx - cw / 2, 0, Math.Max(0, src.Width - cw));
+        y = Math.Clamp(qy - ch / 2, 0, Math.Max(0, src.Height - ch));
     }
 
     private void ClampCenter(ref double cx, ref double cy, double zoom)
     {
-        if (_source == null) return;
-        double b = BaseScale();
-        double cw = Math.Min(VpW / (b * zoom), _source.Width);
-        double ch = Math.Min(VpH / (b * zoom), _source.Height);
-        cx = Math.Clamp(cx, cw / 2, _source.Width - cw / 2);
-        cy = Math.Clamp(cy, ch / 2, _source.Height - ch / 2);
-        if (_source.Width <= cw) cx = _source.Width / 2;
-        if (_source.Height <= ch) cy = _source.Height / 2;
+        var cur = Current;
+        if (cur == null) return;
+        ComputeCrop(cur, zoom, cx, cy, out _, out _, out double cw, out double ch);
+        cx = Math.Clamp(cx, cw / 2, cur.Width - cw / 2);
+        cy = Math.Clamp(cy, ch / 2, cur.Height - ch / 2);
+        if (cur.Width <= cw) cx = cur.Width / 2;
+        if (cur.Height <= ch) cy = cur.Height / 2;
     }
 
     // ---------- Crop pan/zoom ----------
 
     private void Crop_Down(object sender, MouseButtonEventArgs e)
     {
-        if (_source == null) return;
+        if (Current == null) return;
         CropImage.CaptureMouse();
         _dragging = true;
         _dragLast = e.GetPosition(CropImage);
+        if (DrawCheck.IsChecked == true) PushUndo();
     }
 
     private void Crop_Move(object sender, MouseEventArgs e)
     {
-        if (!_dragging || !CropImage.IsMouseCaptured || _source == null) return;
+        if (!_dragging || !CropImage.IsMouseCaptured || Current == null) return;
         if (e.LeftButton != MouseButtonState.Pressed) { CropImage.ReleaseMouseCapture(); _dragging = false; return; }
         var p = e.GetPosition(CropImage);
-        double s = BaseScale() * _zoom;
-        // Viewport bitmap is VpW wide but displayed at CropImage width (same here).
-        double k = VpW / CropImage.ActualWidth;
-        _cx -= (p.X - _dragLast.X) * k / s;
-        _cy -= (p.Y - _dragLast.Y) * k / s;
-        _dragLast = p;
-        RenderView();
+        if (DrawCheck.IsChecked == true)
+        {
+            DrawSegment(_dragLast, p);
+            _dragLast = p;
+            RenderView();
+            RebuildThumb(_frameIndex);
+        }
+        else
+        {
+            double s = BaseScale(Current) * _zoom;
+            // Viewport bitmap is VpW wide but displayed at CropImage width (same here).
+            double k = VpW / CropImage.ActualWidth;
+            _cx -= (p.X - _dragLast.X) * k / s;
+            _cy -= (p.Y - _dragLast.Y) * k / s;
+            _dragLast = p;
+            RenderView();
+        }
     }
 
     private void Crop_Up(object sender, MouseButtonEventArgs e)
     {
         CropImage.ReleaseMouseCapture();
         _dragging = false;
+    }
+
+    private Point ViewToSource(Point view)
+    {
+        var cur = Current!;
+        double k = VpW / CropImage.ActualWidth;
+        ComputeCrop(cur, _zoom, _cx, _cy, out double x, out double y, out double cw, out double ch);
+        return new Point(x + view.X * k / VpW * cw, y + view.Y * k / VpH * ch);
+    }
+
+    private void DrawSegment(Point viewFrom, Point viewTo)
+    {
+        var cur = Current;
+        if (cur == null) return;
+        var a = ViewToSource(viewFrom);
+        var b = ViewToSource(viewTo);
+        ComputeCrop(cur, _zoom, _cx, _cy, out _, out _, out double cw, out _);
+        float w = (float)(PenSizeSlider.Value * cw / VpW);
+        var c = _penColor;
+        using var g = SD.Graphics.FromImage(cur);
+        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+        using var pen = new SD.Pen(SD.Color.FromArgb(c.A, c.R, c.G, c.B), Math.Max(1, w))
+        {
+            StartCap = System.Drawing.Drawing2D.LineCap.Round,
+            EndCap = System.Drawing.Drawing2D.LineCap.Round,
+            LineJoin = System.Drawing.Drawing2D.LineJoin.Round,
+        };
+        // Dot for a click without movement.
+        if (Math.Abs(b.X - a.X) < 0.5 && Math.Abs(b.Y - a.Y) < 0.5)
+            g.FillEllipse(pen.Brush, (float)(a.X - w / 2), (float)(a.Y - w / 2), w, w);
+        else
+            g.DrawLine(pen, (float)a.X, (float)a.Y, (float)b.X, (float)b.Y);
     }
 
     // ---------- Controls ----------
@@ -149,7 +252,7 @@ public partial class WallpaperStudio : Window
     private void Anim_Toggled(object sender, RoutedEventArgs e)
     {
         _animT = 0;
-        if (AnimCheck.IsChecked == true && _source != null && KbCombo.SelectedIndex > 0)
+        if (AnimCheck.IsChecked == true && Current != null && KbCombo.SelectedIndex > 0)
             _animTimer.Start();
         else
         {
@@ -160,10 +263,176 @@ public partial class WallpaperStudio : Window
 
     private void UpdateFrameInfo()
     {
-        if (_source == null) { FrameInfo.Text = "No image loaded"; return; }
-        if (KbCombo.SelectedIndex <= 0) { FrameInfo.Text = "Still image — PNG snapshot available"; return; }
-        int fps = Fps(), n = (int)Math.Round(fps * Duration());
-        FrameInfo.Text = $"{n} frames · {Duration():F0}s @ {fps}fps · 436×96 GIF on export";
+        if (_frames.Count == 0) { FrameInfo.Text = "No image loaded"; return; }
+        string f = _frames.Count == 1 ? "1 frame" : $"{_frames.Count} frames";
+        if (KbCombo.SelectedIndex <= 0)
+            FrameInfo.Text = _frames.Count > 1
+                ? $"{f} · GIF exports the timeline @ {Fps()}fps"
+                : "Still image — PNG snapshot available";
+        else
+        {
+            int n = Math.Max(2, (int)Math.Round(Fps() * Duration()));
+            FrameInfo.Text = $"{f} · Ken Burns {n} frames · {Duration():F0}s @ {Fps()}fps";
+        }
+    }
+
+    // ---------- Frames ----------
+
+    private void Film_Select(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_ready || FilmStrip.SelectedIndex < 0 || FilmStrip.SelectedIndex >= _frames.Count) return;
+        _frameIndex = FilmStrip.SelectedIndex;
+        RenderView();
+    }
+
+    private void RebuildThumb(int index)
+    {
+        if (index < 0 || index >= _frames.Count || index >= _thumbs.Count) return;
+        using var t = RenderFrame(_frames[index], 120, 28, 1.0,
+            _frames[index].Width / 2.0, _frames[index].Height / 2.0, ReadAdjust());
+        _thumbs[index] = t == null ? BlankThumb() : ToBitmapImage(t);
+    }
+
+    private void FrameAdd_Click(object sender, RoutedEventArgs e)
+    {
+        int w = Current?.Width ?? 872, h = Current?.Height ?? 192;
+        var blank = new SD.Bitmap(w, h, SDI.PixelFormat.Format32bppArgb);
+        using (var g = SD.Graphics.FromImage(blank))
+            g.Clear(SD.Color.Transparent);
+        _frames.Add(blank);
+        _frameIndex = _frames.Count - 1;
+        ResetView();
+        RebuildThumbs();
+        UpdateFrameInfo();
+        RenderView();
+    }
+
+    private void FrameDupe_Click(object sender, RoutedEventArgs e)
+    {
+        var cur = Current;
+        if (cur == null) return;
+        _frames.Insert(_frameIndex + 1, (SD.Bitmap)cur.Clone());
+        _frameIndex++;
+        RebuildThumbs();
+        UpdateFrameInfo();
+        RenderView();
+    }
+
+    private void FrameDel_Click(object sender, RoutedEventArgs e)
+    {
+        if (_frames.Count <= 1) return;
+        _frames[_frameIndex].Dispose();
+        _frames.RemoveAt(_frameIndex);
+        _frameIndex = Math.Clamp(_frameIndex, 0, _frames.Count - 1);
+        ResetView();
+        RebuildThumbs();
+        UpdateFrameInfo();
+        RenderView();
+    }
+
+    private void ClearFrame_Click(object sender, RoutedEventArgs e)
+    {
+        var cur = Current;
+        if (cur == null) return;
+        PushUndo();
+        using var g = SD.Graphics.FromImage(cur);
+        g.Clear(SD.Color.Transparent);
+        RenderView();
+        RebuildThumb(_frameIndex);
+    }
+
+    // ---------- Undo ----------
+
+    private void PushUndo()
+    {
+        var cur = Current;
+        if (cur == null) return;
+        _undo.Add((_frameIndex, (SD.Bitmap)cur.Clone()));
+        if (_undo.Count > 20)
+        {
+            _undo[0].Snap.Dispose();
+            _undo.RemoveAt(0);
+        }
+    }
+
+    private void Undo_Click(object sender, RoutedEventArgs e)
+    {
+        if (_undo.Count == 0 || Current == null) return;
+        var (idx, snap) = _undo[^1];
+        _undo.RemoveAt(_undo.Count - 1);
+        int at = (idx >= 0 && idx < _frames.Count) ? idx : _frameIndex;
+        _frames[at].Dispose();
+        _frames[at] = snap;
+        _frameIndex = at;
+        RebuildThumbs();
+        RenderView();
+    }
+
+    // ---------- Pen ----------
+
+    private void PenSize_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (PenSizeVal != null) PenSizeVal.Text = $"{e.NewValue:F0}";
+    }
+
+    private void PenColor_Click(object sender, RoutedEventArgs e)
+    {
+        var c = _penColor;
+        var dlg = new ColorPickerDialog(Color.FromRgb(c.R, c.G, c.B)) { Owner = this };
+        if (dlg.ShowDialog() == true)
+        {
+            _penColor = Color.FromRgb(dlg.SelectedColor.R, dlg.SelectedColor.G, dlg.SelectedColor.B);
+            PenColorBtn.Background = new SolidColorBrush(_penColor);
+        }
+    }
+
+    // ---------- GIF import ----------
+
+    private void ImportGif_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Filter = "GIF animation|*.gif|All files|*.*",
+            Title = "Add a GIF's frames to the timeline",
+        };
+        if (dlg.ShowDialog() != true) return;
+        try
+        {
+            using var img = SD.Image.FromFile(dlg.FileName);
+            var dim = new SDI.FrameDimension(img.FrameDimensionsList[0]);
+            int n = img.GetFrameCount(dim);
+            int added = 0;
+            for (int i = 0; i < n; i++)
+            {
+                img.SelectActiveFrame(dim, i);
+                var frame = NormalizeFrame(new SD.Bitmap(img));
+                _frames.Add(frame);
+                added++;
+            }
+            _frameIndex = _frames.Count - added;
+            ResetView();
+            RebuildThumbs();
+            UpdateFrameInfo();
+            RenderView();
+            StatusText.Text = $"Imported {added} frame(s) from {System.IO.Path.GetFileName(dlg.FileName)}.";
+        }
+        catch (Exception ex) { StatusText.Text = "GIF import failed: " + ex.Message; }
+    }
+
+    /// <summary>Fit a frame into the current canvas (or adopt the first frame's size).</summary>
+    private SD.Bitmap NormalizeFrame(SD.Bitmap src)
+    {
+        int w = _frames.Count == 0 ? src.Width : _frames[0].Width;
+        int h = _frames.Count == 0 ? src.Height : _frames[0].Height;
+        var bmp = new SD.Bitmap(w, h, SDI.PixelFormat.Format32bppArgb);
+        using var g = SD.Graphics.FromImage(bmp);
+        g.Clear(SD.Color.Transparent);
+        double s = Math.Min((double)w / src.Width, (double)h / src.Height);
+        int dw = (int)(src.Width * s), dh = (int)(src.Height * s);
+        g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+        g.DrawImage(src, (w - dw) / 2, (h - dh) / 2, dw, dh);
+        src.Dispose();
+        return bmp;
     }
 
     private int Fps() => int.TryParse(((ComboBoxItem)FpsCombo.SelectedItem)?.Tag?.ToString(), out int f) ? f : 12;
@@ -217,16 +486,15 @@ public partial class WallpaperStudio : Window
         (float)(SatSlider.Value / 100.0),
         GrayCheck.IsChecked == true);
 
-    private SD.Bitmap? RenderFrame(int outW, int outH, double zoom, double cx, double cy, AdjustState adj)
+    private SD.Bitmap? RenderFrame(SD.Bitmap src, int outW, int outH, double zoom, double cx, double cy, AdjustState adj)
     {
-        if (_source == null) return null;
-        double b = BaseScale();
-        double cw = Math.Min(VpW / (b * zoom), _source.Width);
-        double ch = Math.Min(VpH / (b * zoom), _source.Height);
+        double b = BaseScale(src);
+        double cw = Math.Min(VpW / (b * zoom), src.Width);
+        double ch = Math.Min(VpH / (b * zoom), src.Height);
         // (cx,cy) is the crop CENTER (pre-clamped) — top-left = center minus half size.
         double x = cx - cw / 2, y = cy - ch / 2;
-        x = Math.Clamp(x, 0, Math.Max(0, _source.Width - cw));
-        y = Math.Clamp(y, 0, Math.Max(0, _source.Height - ch));
+        x = Math.Clamp(x, 0, Math.Max(0, src.Width - cw));
+        y = Math.Clamp(y, 0, Math.Max(0, src.Height - ch));
         var bmp = new SD.Bitmap(outW, outH, SDI.PixelFormat.Format24bppRgb);
         using (var g = SD.Graphics.FromImage(bmp))
         {
@@ -234,7 +502,7 @@ public partial class WallpaperStudio : Window
             g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
             using var attrs = new SDI.ImageAttributes();
             attrs.SetColorMatrix(new SDI.ColorMatrix(AdjustMatrix(adj)));
-            g.DrawImage(_source,
+            g.DrawImage(src,
                 new SD.Rectangle(0, 0, outW, outH),
                 (float)x, (float)y, (float)cw, (float)ch,
                 SD.GraphicsUnit.Pixel, attrs);
@@ -246,11 +514,29 @@ public partial class WallpaperStudio : Window
 
     private void RenderView(double zoom, double cx, double cy)
     {
-        if (!_ready || _source == null) return;
+        var cur = Current;
+        if (!_ready || cur == null) return;
         ClampCenter(ref cx, ref cy, zoom);
         if (!_animTimer.IsEnabled) { _cx = cx; _cy = cy; }
-        using var bmp = RenderFrame(480, 106, zoom, cx, cy, ReadAdjust());
+        using var bmp = RenderFrame(cur, 480, 106, zoom, cx, cy, ReadAdjust());
         if (bmp == null) return;
+        // Onion skin: ghost the previous frame underneath (view only, never exported).
+        if (OnionCheck.IsChecked == true && _frameIndex > 0 && _frameIndex < _frames.Count)
+        {
+            using var prev = RenderFrame(_frames[_frameIndex - 1], 480, 106, zoom, cx, cy, ReadAdjust());
+            if (prev != null)
+            {
+                using var g = SD.Graphics.FromImage(bmp);
+                using var attrs = new SDI.ImageAttributes();
+                var m = new float[][] {
+                    new float[] { 1, 0, 0, 0, 0 }, new float[] { 0, 1, 0, 0, 0 },
+                    new float[] { 0, 0, 1, 0, 0 }, new float[] { 0, 0, 0, 0.35f, 0 },
+                    new float[] { 0, 0, 0, 0, 1 } };
+                attrs.SetColorMatrix(new SDI.ColorMatrix(m));
+                g.DrawImage(prev, new SD.Rectangle(0, 0, 480, 106),
+                    0, 0, 480, 106, SD.GraphicsUnit.Pixel, attrs);
+            }
+        }
         PreviewImage.Source = ToBitmapImage(bmp);
         CropImage.Source = PreviewImage.Source;
     }
@@ -273,19 +559,20 @@ public partial class WallpaperStudio : Window
 
     private void AnimTick()
     {
-        if (_source == null) return;
+        var cur = Current;
+        if (cur == null) return;
         _animT += 0.033 / Duration();
         if (_animT > 1) _animT -= 1;
         double p = _animT, z = _zoom, cx = _cx, cy = _cy;
-        double b = BaseScale();
+        double b = BaseScale(cur);
         switch (KbCombo.SelectedIndex)
         {
             case 1: z = _zoom * (1 + 0.3 * p); break;                    // zoom in
             case 2: z = _zoom * (1.3 - 0.3 * p); break;                  // zoom out
             case 3: // pan sideways (ensure slack, sweep center)
                 z = Math.Max(_zoom, 1.15);
-                double cw = Math.Min(VpW / (b * z), _source.Width);
-                double lo = cw / 2, hi = _source.Width - cw / 2;
+                double cw = Math.Min(VpW / (b * z), cur.Width);
+                double lo = cw / 2, hi = cur.Width - cw / 2;
                 cx = lo + (hi - lo) * p;
                 break;
         }
@@ -296,10 +583,11 @@ public partial class WallpaperStudio : Window
 
     private void Png_Click(object sender, RoutedEventArgs e)
     {
-        if (_source == null || _exporting) return;
+        var cur = Current;
+        if (cur == null || _exporting) return;
         try
         {
-            using var bmp = RenderFrame(872, 192, _zoom, _cx, _cy, ReadAdjust());
+            using var bmp = RenderFrame(cur, 872, 192, _zoom, _cx, _cy, ReadAdjust());
             if (bmp == null) return;
             string tmp = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "volwall.png");
             bmp.Save(tmp, SDI.ImageFormat.Png);
@@ -312,60 +600,84 @@ public partial class WallpaperStudio : Window
 
     private async void Gif_Click(object sender, RoutedEventArgs e)
     {
-        if (_source == null || _exporting) return;
-        if (KbCombo.SelectedIndex <= 0)
+        var cur = Current;
+        if (cur == null || _exporting) return;
+        int kbMode = KbCombo.SelectedIndex;
+        bool doKenBurns = kbMode > 0;
+        if (!doKenBurns && _frames.Count < 2)
         {
-            StatusText.Text = "Pick an animation mode first (zoom/pan).";
+            StatusText.Text = "Add frames or pick a Ken Burns mode first.";
             return;
         }
         _exporting = true;
         try
         {
-            int fps = Fps(), n = Math.Max(2, (int)Math.Round(fps * Duration()));
-            int kbMode = KbCombo.SelectedIndex;
+            int fps = Fps();
+            int n = doKenBurns ? Math.Max(2, (int)Math.Round(fps * Duration())) : _frames.Count;
             double z0 = _zoom, cx0 = _cx, cy0 = _cy;
             var adj = ReadAdjust();
-            string tmp = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "volwall.gif");
-            await Task.Run(() =>
+            // Snapshot frames (thread-safe copies) for the background render.
+            var srcs = new List<SD.Bitmap>(n);
+            try
             {
-                var frames = new List<SD.Bitmap>(n);
-                try
+                if (doKenBurns)
                 {
-                    for (int i = 0; i < n; i++)
+                    for (int i = 0; i < n; i++) srcs.Add((SD.Bitmap)cur.Clone());
+                }
+                else
+                {
+                    foreach (var f in _frames) srcs.Add((SD.Bitmap)f.Clone());
+                }
+                string tmp = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "volwall.gif");
+                await Task.Run(() =>
+                {
+                    var frames = new List<SD.Bitmap>(n);
+                    try
                     {
-                        double p = n == 1 ? 0 : (double)i / (n - 1);
-                        double z = z0, cx = cx0, cy = cy0;
-                        double b = BaseScale();
-                        switch (kbMode)
+                        for (int i = 0; i < n; i++)
                         {
-                            case 1: z = z0 * (1 + 0.3 * p); break;
-                            case 2: z = z0 * (1.3 - 0.3 * p); break;
-                            case 3:
-                                z = Math.Max(z0, 1.15);
-                                double cw = Math.Min(VpW / (b * z), _source.Width);
-                                double lo = cw / 2, hi = _source.Width - cw / 2;
-                                cx = lo + (hi - lo) * p;
-                                break;
+                            double p = n == 1 ? 0 : (double)i / (n - 1);
+                            SD.Bitmap src = doKenBurns ? srcs[0] : srcs[i];
+                            double z = z0, cx = cx0, cy = cy0;
+                            if (doKenBurns)
+                            {
+                                double b = BaseScale(src);
+                                switch (kbMode)
+                                {
+                                    case 1: z = z0 * (1 + 0.3 * p); break;
+                                    case 2: z = z0 * (1.3 - 0.3 * p); break;
+                                    case 3:
+                                        z = Math.Max(z0, 1.15);
+                                        double cw = Math.Min(VpW / (b * z), src.Width);
+                                        double lo = cw / 2, hi = src.Width - cw / 2;
+                                        cx = lo + (hi - lo) * p;
+                                        break;
+                                }
+                            }
+                            var f = RenderFrame(src, 436, 96, z, cx, cy, adj);
+                            if (f != null) frames.Add(f);
+                            int done = i + 1;
+                            if (done % 6 == 0 || done == n)
+                                Dispatcher.Invoke(() => StatusText.Text = $"Rendering {done}/{n}…");
                         }
-                        var f = RenderFrame(436, 96, z, cx, cy, adj);
-                        if (f != null) frames.Add(f);
-                        int done = i + 1;
-                        if (done % 6 == 0 || done == n)
-                            Dispatcher.Invoke(() => StatusText.Text = $"Rendering {done}/{n}…");
+                        frames.SaveAsAnimatedGif(tmp, TimeSpan.FromMilliseconds(1000.0 / fps), null, null);
+                        Dispatcher.Invoke(() =>
+                        {
+                            _main.ImportWallpaperFile(tmp, ".gif");
+                            StatusText.Text = $"GIF applied ({frames.Count} frames).";
+                        });
                     }
-                    frames.SaveAsAnimatedGif(tmp, TimeSpan.FromMilliseconds(1000.0 / fps), null, null);
-                    Dispatcher.Invoke(() =>
+                    finally
                     {
-                        _main.ImportWallpaperFile(tmp, ".gif");
-                        StatusText.Text = $"GIF applied ({n} frames).";
-                    });
-                }
-                finally
-                {
-                    foreach (var f in frames) f.Dispose();
-                    try { System.IO.File.Delete(tmp); } catch { }
-                }
-            });
+                        foreach (var f in frames) f.Dispose();
+                        try { System.IO.File.Delete(tmp); } catch { }
+                    }
+                });
+            }
+            finally
+            {
+                foreach (var s in srcs) s.Dispose();
+            }
         }
         catch (Exception ex) { StatusText.Text = "GIF failed: " + ex.Message; }
         finally
@@ -379,8 +691,9 @@ public partial class WallpaperStudio : Window
     protected override void OnClosed(EventArgs e)
     {
         _animTimer.Stop();
-        _source?.Dispose();
-        _source = null;
+        ClearFrames();
+        foreach (var (_, snap) in _undo) snap.Dispose();
+        _undo.Clear();
         base.OnClosed(e);
     }
 }

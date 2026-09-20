@@ -21,6 +21,51 @@
         <TextBlock Text="Crop — drag to pan (pill aspect locked)" Foreground="#9A9AA5" FontSize="11" Margin="0,0,0,4"/>
         <Image x:Name="CropImage" Width="480" Height="106" Stretch="Fill" Cursor="Hand"
                MouseLeftButtonDown="Crop_Down" MouseMove="Crop_Move" MouseLeftButtonUp="Crop_Up"/>
+
+        <TextBlock Text="Frames — frame-by-frame animation" FontWeight="Bold" Margin="0,10,0,6"/>
+        <ListBox x:Name="FilmStrip" Height="64" Background="#0B0B0E" BorderBrush="#33333A" BorderThickness="1"
+                 ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                 SelectionChanged="Film_Select">
+            <ListBox.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal"/>
+                </ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Image Source="{Binding}" Width="120" Height="28" Stretch="UniformToFill" Margin="2"/>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+        <Grid Margin="0,6,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Button Content="+ Blank" Padding="0,4" Margin="0,0,4,0" Click="FrameAdd_Click"/>
+            <Button Grid.Column="1" Content="Duplicate" Padding="0,4" Margin="4,0,4,0" Click="FrameDupe_Click"/>
+            <Button Grid.Column="2" Content="Delete" Padding="0,4" Margin="4,0,4,0" Click="FrameDel_Click"/>
+            <Button Grid.Column="3" Content="Undo" Padding="0,4" Margin="4,0,0,0" Click="Undo_Click"/>
+        </Grid>
+        <CheckBox x:Name="OnionCheck" Content="Onion skin (ghost of previous frame)" Margin="0,6,0,0" Foreground="#F2F2F5"/>
+
+        <TextBlock Text="Draw" FontWeight="Bold" Margin="0,10,0,6"/>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="44"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="44"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <CheckBox x:Name="DrawCheck" Content="Pen" VerticalAlignment="Center" Foreground="#F2F2F5"/>
+            <Button x:Name="PenColorBtn" Grid.Column="1" Height="24" Margin="6,0,0,0" Click="PenColor_Click" ToolTip="Pen color…"/>
+            <Slider x:Name="PenSizeSlider" Grid.Column="2" Minimum="2" Maximum="40" Value="8" VerticalAlignment="Center" Margin="6,0,0,0" ValueChanged="PenSize_Changed"/>
+            <TextBlock x:Name="PenSizeVal" Grid.Column="3" Text="8" TextAlignment="Right" VerticalAlignment="Center"/>
+            <Button Grid.Column="4" Content="Clear frame" Padding="8,4" Margin="6,0,0,0" Click="ClearFrame_Click"/>
+        </Grid>
         <Grid Margin="0,6,0,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="70"/>
@@ -91,11 +136,13 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
             <Button Content="Open…" Padding="0,6" Margin="0,0,4,0" Click="Open_Click"/>
-            <Button Grid.Column="1" Content="Save PNG" Padding="0,6" Margin="4,0,4,0" Click="Png_Click"/>
-            <Button Grid.Column="2" Content="Export GIF" Padding="0,6" Margin="4,0,4,0" Click="Gif_Click"/>
-            <Button Grid.Column="3" Content="Close" Padding="0,6" Margin="4,0,0,0" Click="Close_Click"/>
+            <Button Grid.Column="1" Content="Add GIF…" Padding="0,6" Margin="4,0,4,0" Click="ImportGif_Click"/>
+            <Button Grid.Column="2" Content="Save PNG" Padding="0,6" Margin="4,0,4,0" Click="Png_Click"/>
+            <Button Grid.Column="3" Content="Export GIF" Padding="0,6" Margin="4,0,4,0" Click="Gif_Click"/>
+            <Button Grid.Column="4" Content="Close" Padding="0,6" Margin="4,0,0,0" Click="Close_Click"/>
         </Grid>
         <TextBlock x:Name="StatusText" Text="" Foreground="#9A9AA5" FontSize="11" Margin="0,6,0,0"/>
     </StackPanel>
