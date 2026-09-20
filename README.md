@@ -67,4 +67,6 @@ Everything is local. No accounts, no network calls, no telemetry. The app reads 
 
 ## Uninstall
 
-Exit from the tray icon, then delete the app (or use the installer uninstaller, which also removes the login entry and Start Menu shortcuts).
+In-app (portable or installed): tray icon → **Uninstall…** (or Settings → Uninstall) —
+confirms, then removes the login entry, settings, shortcuts and the exe itself.
+Installer version: also removable from Settings → Apps (same cleanup).

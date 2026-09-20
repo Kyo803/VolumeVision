@@ -179,4 +179,9 @@ public partial class SettingsWindow : Window
         RefreshAll();
         _loading = false;
     }
+
+    private void Uninstall_Click(object sender, RoutedEventArgs e)
+    {
+        VolumeOSD.Services.Uninstaller.RunUninstall(this);
+    }
 }

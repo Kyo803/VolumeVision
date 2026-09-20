@@ -39,12 +39,14 @@ public sealed class VolumeTray : IDisposable
             else AutostartHelper.Disable();
         };
         var exit = new WinForms.ToolStripMenuItem("Exit", null, (_, _) => _main.Dispatcher.Invoke(() => Application.Current.Shutdown()));
+        var uninstall = new WinForms.ToolStripMenuItem("Uninstall…", null, (_, _) => _main.Dispatcher.Invoke(() => Uninstaller.RunUninstall(_main)));
 
         var menu = new WinForms.ContextMenuStrip();
         menu.Items.Add(show);
         menu.Items.Add(settings);
         menu.Items.Add(new WinForms.ToolStripSeparator());
         menu.Items.Add(autostart);
+        menu.Items.Add(uninstall);
         menu.Items.Add(exit);
         menu.Opening += (_, _) => autostart.Checked = AutostartHelper.IsEnabled();
         _icon.ContextMenuStrip = menu;
