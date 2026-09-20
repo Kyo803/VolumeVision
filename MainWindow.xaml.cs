@@ -219,6 +219,9 @@ public partial class MainWindow : Window
     private string _bgImageFile = "";
     public string BgImageName => string.IsNullOrEmpty(_bgImageFile) ? "None (solid color)" : _bgImageFile;
     public bool SliderFx { get; private set; } = true;
+    /// <summary>When true (and a wallpaper is set), the solid glass color is
+    /// dropped so the animation shows through at full vibrancy.</summary>
+    public bool BgOnly { get; private set; }
     private Storyboard? _shimmerStory;
 
     // Figma defaults
@@ -269,6 +272,8 @@ public partial class MainWindow : Window
             Glass = Math.Clamp(GetDouble(root, "glass", Glass), 0.4, 1.0);
             Gloss = Math.Clamp(GetDouble(root, "gloss", Gloss), 0.0, 1.5);
             _bgImageFile = GetString(root, "bgImage", "");
+            if (root.TryGetProperty("bgOnly", out var boEl))
+                try { BgOnly = boEl.GetBoolean(); } catch { }
             if (root.TryGetProperty("sliderFx", out var fxEl))
                 try { SliderFx = fxEl.GetBoolean(); } catch { }
             if (root.TryGetProperty("colors", out var cols))
@@ -289,7 +294,7 @@ public partial class MainWindow : Window
             var cols = string.Join(",", _colors.Select(kv => $"\"{kv.Key}\":\"{kv.Value}\""));
             System.IO.File.WriteAllText(SettingsPath,
                 $"{{\"scale\":{_uiScale:F3},\"position\":\"{Position}\",\"glass\":{Glass:F2},\"gloss\":{Gloss:F2}," +
-                $"\"bgImage\":\"{_bgImageFile}\",\"sliderFx\":{(SliderFx ? "true" : "false")},\"colors\":{{{cols}}}}}");
+                $"\"bgImage\":\"{_bgImageFile}\",\"bgOnly\":{(BgOnly ? "true" : "false")},\"sliderFx\":{(SliderFx ? "true" : "false")},\"colors\":{{{cols}}}}}");
         }
         catch { }
     }
@@ -406,7 +411,32 @@ public partial class MainWindow : Window
         ImageBehavior.SetAnimatedSource(BgImage, null);
         BgImage.Source = null;
         BgClip.Visibility = Visibility.Collapsed;
-        GlassTint.Visibility = Visibility.Collapsed;
+        ApplyGlassLayers();
+    }
+
+    /// <summary>Glass on = solid color (+tint over wallpaper). Glass off =
+    /// wallpaper only (border ring + gloss stay for definition).</summary>
+    private void ApplyGlassLayers()
+    {
+        bool showOnly = BgOnly && BgClip.Visibility == Visibility.Visible;
+        if (showOnly)
+        {
+            Pill.Background = Brushes.Transparent;
+            GlassTint.Visibility = Visibility.Collapsed;
+        }
+        else
+        {
+            Pill.SetResourceReference(System.Windows.Controls.Border.BackgroundProperty, "PillBgBrush");
+            GlassTint.Visibility = BgClip.Visibility;
+        }
+    }
+
+    public void SetBgOnly(bool on)
+    {
+        BgOnly = on;
+        ApplyGlassLayers();
+        SaveSettings();
+        DebugLog.Write("bgOnly=" + on);
     }
 
     private void ApplyBackground()
@@ -441,7 +471,7 @@ public partial class MainWindow : Window
                 BgImage.Source = bmp;
             }
             BgClip.Visibility = Visibility.Visible;
-            GlassTint.Visibility = Visibility.Visible; // glass color tints over the art
+            ApplyGlassLayers(); // glass color tints over the art (unless bg-only mode)
             DebugLog.Write("wallpaper applied: " + _bgImageFile);
         }
         catch (Exception ex)

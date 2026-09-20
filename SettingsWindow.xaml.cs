@@ -83,6 +83,7 @@ public partial class SettingsWindow : Window
         MarkPosition();
         BgName.Text = _main.BgImageName;
         FxCheck.IsChecked = _main.SliderFx;
+        BgOnlyCheck.IsChecked = _main.BgOnly;
     }
 
     private void MarkPosition()
@@ -131,6 +132,12 @@ public partial class SettingsWindow : Window
     {
         if (_loading) return;
         _main.SetSliderFx(FxCheck.IsChecked == true);
+    }
+
+    private void BgOnly_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        _main.SetBgOnly(BgOnlyCheck.IsChecked == true);
     }
 
     private void Pos_Click(object sender, RoutedEventArgs e)
