@@ -63,7 +63,8 @@
             <Button x:Name="BgPickBtn" Content="Use image…" Padding="0,6" Margin="0,0,4,0" Click="BgPick_Click"/>
             <Button x:Name="BgClearBtn" Content="Clear" Grid.Column="1" Padding="0,6" Margin="4,0,0,0" Click="BgClear_Click"/>
         </Grid>
-        <TextBlock x:Name="BgName" Text="None (solid color)" Foreground="#9A9AA5" FontSize="11" Margin="0,0,0,10"/>
+        <Button x:Name="StudioBtn" Content="Wallpaper studio — crop &amp; animate…" Margin="0,6,0,0" Padding="0,6" Click="Studio_Click"/>
+        <TextBlock x:Name="BgName" Text="None (solid color)" Foreground="#9A9AA5" FontSize="11" Margin="0,4,0,10"/>
 
         <TextBlock Text="Colors (hex)" FontWeight="Bold" Margin="0,0,0,6"/>
         <Grid x:Name="ColorGrid" Margin="0,0,0,10">

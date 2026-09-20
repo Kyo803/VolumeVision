@@ -116,6 +116,17 @@ public partial class SettingsWindow : Window
         BgName.Text = _main.BgImageName;
     }
 
+    private void Studio_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var studio = new WallpaperStudio(_main) { Owner = this };
+            studio.ShowDialog();
+            BgName.Text = _main.BgImageName;
+        }
+        catch (Exception ex) { BgName.Text = "Studio failed: " + ex.Message; }
+    }
+
     private void Fx_Toggled(object sender, RoutedEventArgs e)
     {
         if (_loading) return;

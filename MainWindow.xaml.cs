@@ -364,22 +364,32 @@ public partial class MainWindow : Window
         if (dlg.ShowDialog() != true) return;
         string ext = System.IO.Path.GetExtension(dlg.FileName).ToLowerInvariant();
         if (ext is not (".png" or ".jpg" or ".jpeg" or ".bmp" or ".gif")) return;
+        ImportWallpaperFile(dlg.FileName, ext);
+    }
+
+    /// <summary>Copies an image into the wallpaper slot and applies it.</summary>
+    public void ImportWallpaperFile(string src, string ext)
+    {
         try
         {
-            // Release current image first so its file can be replaced.
             ImageBehavior.SetAnimatedSource(BgImage, null);
             BgImage.Source = null;
             System.IO.Directory.CreateDirectory(AppDataDir);
             foreach (var f in System.IO.Directory.GetFiles(AppDataDir, "bg.*"))
                 System.IO.File.Delete(f);
             string dst = System.IO.Path.Combine(AppDataDir, "bg" + ext);
-            System.IO.File.Copy(dlg.FileName, dst, overwrite: true);
-            _bgImageFile = "bg" + ext;
-            ApplyBackground();
-            SaveSettings();
-            DebugLog.Write("wallpaper set: " + _bgImageFile);
+            System.IO.File.Copy(src, dst, overwrite: true);
+            SetWallpaperFile("bg" + ext);
+            DebugLog.Write("wallpaper set: bg" + ext);
         }
         catch (Exception ex) { DebugLog.Write("wallpaper FAIL: " + ex.Message); }
+    }
+
+    public void SetWallpaperFile(string fileName)
+    {
+        _bgImageFile = fileName;
+        ApplyBackground();
+        SaveSettings();
     }
 
     public void ClearBackgroundImage()

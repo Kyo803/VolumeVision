@@ -9,6 +9,7 @@ A custom Windows volume bar to replace the stock one — a liquid-glass pill (de
 - **Sliders you can drag** — click-drag works even outside the bar (mouse capture), hover holds the pill open
 - **4 docks** — bottom / top / left / right from Settings; side docks turn the pill 90° (speaker stays upright, chevrons become up/down, drags go vertical)
 - **Theming** — 7 colors, glass opacity, gloss intensity, size, live preview pane, Photoshop-style color picker, persists to `%AppData%\VolumeOSD\settings.json`
+- **Wallpapers** — static image or animated GIF behind the glass (Settings → Wallpaper), plus a built-in **wallpaper studio**: crop/pan/zoom locked to the pill shape, brightness/contrast/saturation/B&W, Ken Burns animation preview, one-click PNG snapshot or animated-GIF export straight onto the pill
 - **Background citizen** — starts with Windows, tray icon (show/settings/autostart/exit), EcoQoS + slow polling while hidden, ~1–2 MB trimmed working set idle
 
 ## Install
