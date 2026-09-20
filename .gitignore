@@ -1,0 +1,7 @@
+# Build outputs (contain machine-specific paths — never publish these)
+bin/
+obj/
+dist/
+Publish/
+*.user
+.vs/
