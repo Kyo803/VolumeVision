@@ -448,14 +448,10 @@ public partial class MainWindow : Window
         {
             if (_bgImageFile.EndsWith(".gif", StringComparison.OrdinalIgnoreCase))
             {
+                // Let the behavior own the decode: a plain Uri bitmap, no Freeze,
+                // so frames stay available for animation.
                 BgImage.Source = null;
-                var bmp = new BitmapImage();
-                bmp.BeginInit();
-                bmp.UriSource = new Uri(path);
-                bmp.CacheOption = BitmapCacheOption.OnLoad;
-                bmp.EndInit();
-                bmp.Freeze();
-                ImageBehavior.SetAnimatedSource(BgImage, bmp);
+                ImageBehavior.SetAnimatedSource(BgImage, new BitmapImage(new Uri(path)));
                 ImageBehavior.SetRepeatBehavior(BgImage, RepeatBehavior.Forever);
             }
             else
@@ -480,6 +476,17 @@ public partial class MainWindow : Window
             _bgImageFile = "";
             HideWallpaper();
         }
+    }
+
+    /// <summary>Re-apply the current wallpaper file on demand (Apply button).</summary>
+    public void ReapplyBackground()
+    {
+        if (string.IsNullOrEmpty(_bgImageFile)) return;
+        string keep = _bgImageFile;
+        HideWallpaper();
+        _bgImageFile = keep;
+        ApplyBackground();
+        SaveSettings();
     }
 
     // ---------- Animated slider shimmer ----------

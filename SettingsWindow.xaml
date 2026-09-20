@@ -59,9 +59,11 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
             <Button x:Name="BgPickBtn" Content="Use image…" Padding="0,6" Margin="0,0,4,0" Click="BgPick_Click"/>
-            <Button x:Name="BgClearBtn" Content="Clear" Grid.Column="1" Padding="0,6" Margin="4,0,0,0" Click="BgClear_Click"/>
+            <Button x:Name="BgApplyBtn" Content="Apply" Grid.Column="1" Padding="0,6" Margin="4,0,4,0" Click="BgApply_Click"/>
+            <Button x:Name="BgClearBtn" Content="Clear" Grid.Column="2" Padding="0,6" Margin="4,0,0,0" Click="BgClear_Click"/>
         </Grid>
         <Button x:Name="StudioBtn" Content="Wallpaper studio — crop &amp; animate…" Margin="0,6,0,0" Padding="0,6" Click="Studio_Click"/>
         <CheckBox x:Name="BgOnlyCheck" Content="Animation only — hide the solid color" Margin="0,6,0,0" Foreground="#F2F2F5" Checked="BgOnly_Toggled" Unchecked="BgOnly_Toggled"/>

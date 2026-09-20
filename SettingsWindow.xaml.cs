@@ -111,6 +111,12 @@ public partial class SettingsWindow : Window
         BgName.Text = _main.BgImageName;
     }
 
+    private void BgApply_Click(object sender, RoutedEventArgs e)
+    {
+        _main.ReapplyBackground();
+        BgName.Text = _main.BgImageName;
+    }
+
     private void BgClear_Click(object sender, RoutedEventArgs e)
     {
         _main.ClearBackgroundImage();
