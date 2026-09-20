@@ -86,7 +86,7 @@
             <TextBlock x:Name="ScaleVal" Grid.Row="2" Grid.Column="2" TextAlignment="Right" VerticalAlignment="Center"/>
         </Grid>
 
-        <Button x:Name="ResetBtn" Content="Reset to Figma defaults" Margin="0,8,0,0" Padding="0,6" Click="Reset_Click"/>
+        <Button x:Name="ResetBtn" Content="Reset to defaults" Margin="0,8,0,0" Padding="0,6" Click="Reset_Click"/>
         <Button x:Name="UninstallBtn" Content="Uninstall VolumeOSD…" Margin="0,6,0,0" Padding="0,6" Click="Uninstall_Click"/>
         <TextBlock x:Name="HotkeyHint" Foreground="#9A9AA5" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
     </StackPanel>
