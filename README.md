@@ -14,9 +14,10 @@ A custom Windows volume bar to replace the stock one — a liquid-glass pill (de
 
 ## Install
 
-**Option A — installer (recommended):** download `VolumeOSD-Setup-1.0.0.exe` from
+**Option A — installer (recommended):** download `VolumeOSD-Setup-1.1.0.exe` from
 [Releases](https://github.com/Kyo803/VolumeVision/releases), run it, done.
-No admin needed. Uninstall from Settings → Apps; it cleans up its login entry.
+No admin needed — one file installs the app, Start Menu entries, uninstaller,
+and login autostart (on by default, toggle anytime from the tray icon).
 
 **Option B — portable:** download `VolumeOSD.exe` (self-contained, ~236 MB, no .NET needed) and run it.
 

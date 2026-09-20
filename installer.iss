@@ -6,7 +6,7 @@
 ; first run; uninstall removes that registry value.
 
 #define MyAppName "VolumeOSD"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.1.0"
 #define MyAppExeName "VolumeOSD.exe"
 
 [Setup]
@@ -35,11 +35,14 @@ Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Tasks]
+Name: "startup"; Description: "Start {#MyAppName} with Windows"; Flags: checkedonce
 Name: "desktopicon"; Description: "Create a &desktop shortcut"; Flags: unchecked
 
 [Registry]
-; Clean up the login autostart the app registers for itself.
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: none; ValueName: "{#MyAppName}"; Flags: uninsdeletevalue
+; Login autostart (default on). The app keeps this entry in sync on every
+; launch; uninstall removes it either way.
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#MyAppName}"; ValueData: """{app}\{#MyAppExeName}"""; Tasks: startup; Flags: uninsdeletevalue
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: none; ValueName: "{#MyAppName}"; Flags: uninsdeletevalue dontcreatekey
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "Launch {#MyAppName}"; Flags: nowait postinstall skipifsilent
