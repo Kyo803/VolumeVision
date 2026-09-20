@@ -81,6 +81,8 @@ public partial class SettingsWindow : Window
         PreviewGloss.Opacity = 0.55 * _main.Gloss;
         HotkeyHint.Text = $"Hotkeys: {_main.SettingsHotkeyLabel} settings · Ctrl+Shift+V summon · Ctrl+Shift+Plus/Minus resize. Alt+X/S overlay · {_main.PrevHotkeyLabel}/Alt+C prev/next · Alt+Shift+Z/C frames · Alt+Shift+A/D volume. Double-click empty pill area for settings.";
         MarkPosition();
+        BgName.Text = _main.BgImageName;
+        FxCheck.IsChecked = _main.SliderFx;
     }
 
     private void MarkPosition()
@@ -100,6 +102,24 @@ public partial class SettingsWindow : Window
             "Right" => "Right edge, pill turned 90°",
             _ => "Bottom-center dock",
         };
+    }
+
+    private void BgPick_Click(object sender, RoutedEventArgs e)
+    {
+        _main.PickBackgroundImage();
+        BgName.Text = _main.BgImageName;
+    }
+
+    private void BgClear_Click(object sender, RoutedEventArgs e)
+    {
+        _main.ClearBackgroundImage();
+        BgName.Text = _main.BgImageName;
+    }
+
+    private void Fx_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        _main.SetSliderFx(FxCheck.IsChecked == true);
     }
 
     private void Pos_Click(object sender, RoutedEventArgs e)

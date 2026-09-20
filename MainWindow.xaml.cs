@@ -8,6 +8,7 @@ using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using VolumeOSD.Services;
+using WpfAnimatedGif;
 
 namespace VolumeOSD;
 
@@ -210,8 +211,15 @@ public partial class MainWindow : Window
 
     // ---------- Appearance model (colors, grading, position, scale) ----------
 
-    private static string SettingsPath => System.IO.Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VolumeOSD", "settings.json");
+    private static string SettingsPath => System.IO.Path.Combine(AppDataDir, "settings.json");
+    private static string AppDataDir => System.IO.Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VolumeOSD");
+
+    // Wallpaper (filename inside AppDataDir) + animated slider shimmer toggle.
+    private string _bgImageFile = "";
+    public string BgImageName => string.IsNullOrEmpty(_bgImageFile) ? "None (solid color)" : _bgImageFile;
+    public bool SliderFx { get; private set; } = true;
+    private Storyboard? _shimmerStory;
 
     // Figma defaults
     private const string DefBg = "#000000";
@@ -260,6 +268,9 @@ public partial class MainWindow : Window
             if (pos is "Top" or "Bottom" or "Left" or "Right") Position = pos;
             Glass = Math.Clamp(GetDouble(root, "glass", Glass), 0.4, 1.0);
             Gloss = Math.Clamp(GetDouble(root, "gloss", Gloss), 0.0, 1.5);
+            _bgImageFile = GetString(root, "bgImage", "");
+            if (root.TryGetProperty("sliderFx", out var fxEl))
+                try { SliderFx = fxEl.GetBoolean(); } catch { }
             if (root.TryGetProperty("colors", out var cols))
                 foreach (var k in _colors.Keys.ToList())
                 {
@@ -277,7 +288,8 @@ public partial class MainWindow : Window
             System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(SettingsPath)!);
             var cols = string.Join(",", _colors.Select(kv => $"\"{kv.Key}\":\"{kv.Value}\""));
             System.IO.File.WriteAllText(SettingsPath,
-                $"{{\"scale\":{_uiScale:F3},\"position\":\"{Position}\",\"glass\":{Glass:F2},\"gloss\":{Gloss:F2},\"colors\":{{{cols}}}}}");
+                $"{{\"scale\":{_uiScale:F3},\"position\":\"{Position}\",\"glass\":{Glass:F2},\"gloss\":{Gloss:F2}," +
+                $"\"bgImage\":\"{_bgImageFile}\",\"sliderFx\":{(SliderFx ? "true" : "false")},\"colors\":{{{cols}}}}}");
         }
         catch { }
     }
@@ -340,6 +352,150 @@ public partial class MainWindow : Window
         SaveSettings();
     }
 
+    // ---------- Custom wallpaper (static image or animated GIF) ----------
+
+    public void PickBackgroundImage()
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Filter = "Images|*.png;*.jpg;*.jpeg;*.bmp;*.gif|All files|*.*",
+            Title = "Choose pill wallpaper",
+        };
+        if (dlg.ShowDialog() != true) return;
+        string ext = System.IO.Path.GetExtension(dlg.FileName).ToLowerInvariant();
+        if (ext is not (".png" or ".jpg" or ".jpeg" or ".bmp" or ".gif")) return;
+        try
+        {
+            // Release current image first so its file can be replaced.
+            ImageBehavior.SetAnimatedSource(BgImage, null);
+            BgImage.Source = null;
+            System.IO.Directory.CreateDirectory(AppDataDir);
+            foreach (var f in System.IO.Directory.GetFiles(AppDataDir, "bg.*"))
+                System.IO.File.Delete(f);
+            string dst = System.IO.Path.Combine(AppDataDir, "bg" + ext);
+            System.IO.File.Copy(dlg.FileName, dst, overwrite: true);
+            _bgImageFile = "bg" + ext;
+            ApplyBackground();
+            SaveSettings();
+            DebugLog.Write("wallpaper set: " + _bgImageFile);
+        }
+        catch (Exception ex) { DebugLog.Write("wallpaper FAIL: " + ex.Message); }
+    }
+
+    public void ClearBackgroundImage()
+    {
+        _bgImageFile = "";
+        try { foreach (var f in System.IO.Directory.GetFiles(AppDataDir, "bg.*")) System.IO.File.Delete(f); }
+        catch { }
+        HideWallpaper();
+        SaveSettings();
+    }
+
+    private void HideWallpaper()
+    {
+        ImageBehavior.SetAnimatedSource(BgImage, null);
+        BgImage.Source = null;
+        BgClip.Visibility = Visibility.Collapsed;
+        GlassTint.Visibility = Visibility.Collapsed;
+    }
+
+    private void ApplyBackground()
+    {
+        if (string.IsNullOrEmpty(_bgImageFile)) { HideWallpaper(); return; }
+        string path = System.IO.Path.Combine(AppDataDir, _bgImageFile);
+        if (!System.IO.File.Exists(path)) { _bgImageFile = ""; HideWallpaper(); return; }
+        try
+        {
+            if (_bgImageFile.EndsWith(".gif", StringComparison.OrdinalIgnoreCase))
+            {
+                BgImage.Source = null;
+                var bmp = new BitmapImage();
+                bmp.BeginInit();
+                bmp.UriSource = new Uri(path);
+                bmp.CacheOption = BitmapCacheOption.OnLoad;
+                bmp.EndInit();
+                bmp.Freeze();
+                ImageBehavior.SetAnimatedSource(BgImage, bmp);
+                ImageBehavior.SetRepeatBehavior(BgImage, RepeatBehavior.Forever);
+            }
+            else
+            {
+                ImageBehavior.SetAnimatedSource(BgImage, null);
+                var bmp = new BitmapImage();
+                bmp.BeginInit();
+                bmp.UriSource = new Uri(path);
+                bmp.CacheOption = BitmapCacheOption.OnLoad;
+                bmp.DecodePixelWidth = 872;
+                bmp.EndInit();
+                bmp.Freeze();
+                BgImage.Source = bmp;
+            }
+            BgClip.Visibility = Visibility.Visible;
+            GlassTint.Visibility = Visibility.Visible; // glass color tints over the art
+            DebugLog.Write("wallpaper applied: " + _bgImageFile);
+        }
+        catch (Exception ex)
+        {
+            DebugLog.Write("wallpaper apply FAIL: " + ex.Message);
+            _bgImageFile = "";
+            HideWallpaper();
+        }
+    }
+
+    // ---------- Animated slider shimmer ----------
+
+    private void SetupShimmer()
+    {
+        var brush = new LinearGradientBrush
+        {
+            StartPoint = new Point(0, 0),
+            EndPoint = new Point(1, 1),
+        };
+        var stops = new[]
+        {
+            new GradientStop(Colors.Transparent, -0.5),
+            new GradientStop(Color.FromArgb(0x55, 255, 255, 255), -0.25),
+            new GradientStop(Colors.Transparent, 0.0),
+        };
+        foreach (var s in stops) brush.GradientStops.Add(s);
+        SysShimmer.Background = brush;
+        SpotShimmer.Background = brush;
+
+        _shimmerStory = new Storyboard { RepeatBehavior = RepeatBehavior.Forever };
+        foreach (var s in stops)
+        {
+            var anim = new DoubleAnimation(s.Offset, s.Offset + 1.8, TimeSpan.FromSeconds(2.4));
+            Storyboard.SetTarget(anim, s);
+            Storyboard.SetTargetProperty(anim, new PropertyPath(GradientStop.OffsetProperty));
+            _shimmerStory.Children.Add(anim);
+        }
+        ApplySliderFx();
+    }
+
+    public void SetSliderFx(bool on)
+    {
+        SliderFx = on;
+        ApplySliderFx();
+        SaveSettings();
+    }
+
+    private void ApplySliderFx()
+    {
+        if (_shimmerStory == null) return;
+        if (SliderFx)
+        {
+            SysShimmer.Visibility = Visibility.Visible;
+            SpotShimmer.Visibility = Visibility.Visible;
+            _shimmerStory.Begin(this, true);
+        }
+        else
+        {
+            _shimmerStory.Pause(this);
+            SysShimmer.Visibility = Visibility.Collapsed;
+            SpotShimmer.Visibility = Visibility.Collapsed;
+        }
+    }
+
     public void ApplyScale(double s, bool save = true)
     {
         _uiScale = Math.Clamp(s, 0.8, 2.5);
@@ -367,8 +523,15 @@ public partial class MainWindow : Window
         Pill.Height = vert ? w : h;
         Pill.CornerRadius = new CornerRadius(h / 2);
         GlossOverlay.CornerRadius = new CornerRadius(h / 2);
+        BgClip.CornerRadius = new CornerRadius(h / 2);
+        GlassTint.CornerRadius = new CornerRadius(h / 2);
+        // Border doesn't clip its child to rounded corners — clip the wallpaper manually.
+        double cw = vert ? h : w, ch = vert ? w : h;
+        BgClip.Clip = new RectangleGeometry(new Rect(0, 0, cw, ch), h / 2, h / 2);
         OsdViewBox.Width = w;
         OsdViewBox.Height = h;
+        BgClip.CornerRadius = new CornerRadius(h / 2);
+        GlassTint.CornerRadius = new CornerRadius(h / 2);
         double angle = Position == "Left" ? -90 : Position == "Right" ? 90 : 0;
         OsdViewBox.LayoutTransform = angle == 0 ? Transform.Identity : new RotateTransform(angle);
         // Counter-rotate the speaker glyphs so they stay upright on side docks.
@@ -416,6 +579,8 @@ public partial class MainWindow : Window
             LoadSettings();
             ApplyColors();
             ApplyLayout();
+            SetupShimmer();
+            ApplyBackground();
             _tray = new Services.VolumeTray(this);
             DebugLog.Write("tray ready");
             DebugLog.Write($"rescheck bg={TryFindResource("PillBgBrush") != null} pillbg={Pill.Background} pillvis={Pill.Visibility} winvis={Visibility} opacity={Pill.Opacity} wnd={Width}x{Height} at {Left:F0},{Top:F0}");

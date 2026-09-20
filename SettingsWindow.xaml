@@ -54,6 +54,17 @@
         </UniformGrid>
         <TextBlock x:Name="PosHint" Text="Bottom dock" Foreground="#9A9AA5" FontSize="11" Margin="0,0,0,10"/>
 
+        <TextBlock Text="Wallpaper" FontWeight="Bold" Margin="0,0,0,6"/>
+        <Grid Margin="0,0,0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Button x:Name="BgPickBtn" Content="Use image…" Padding="0,6" Margin="0,0,4,0" Click="BgPick_Click"/>
+            <Button x:Name="BgClearBtn" Content="Clear" Grid.Column="1" Padding="0,6" Margin="4,0,0,0" Click="BgClear_Click"/>
+        </Grid>
+        <TextBlock x:Name="BgName" Text="None (solid color)" Foreground="#9A9AA5" FontSize="11" Margin="0,0,0,10"/>
+
         <TextBlock Text="Colors (hex)" FontWeight="Bold" Margin="0,0,0,6"/>
         <Grid x:Name="ColorGrid" Margin="0,0,0,10">
             <Grid.ColumnDefinitions>
@@ -87,6 +98,7 @@
         </Grid>
 
         <Button x:Name="ResetBtn" Content="Reset to defaults" Margin="0,8,0,0" Padding="0,6" Click="Reset_Click"/>
+        <CheckBox x:Name="FxCheck" Content="Animated slider shimmer" Margin="0,8,0,0" Foreground="#F2F2F5" Checked="Fx_Toggled" Unchecked="Fx_Toggled"/>
         <Button x:Name="UninstallBtn" Content="Uninstall VolumeOSD…" Margin="0,6,0,0" Padding="0,6" Click="Uninstall_Click"/>
         <TextBlock x:Name="HotkeyHint" Foreground="#9A9AA5" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
     </StackPanel>
