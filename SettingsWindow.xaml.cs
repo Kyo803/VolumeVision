@@ -109,6 +109,7 @@ public partial class SettingsWindow : Window
     {
         _main.PickBackgroundImage();
         BgName.Text = _main.BgImageName;
+        BgOnlyCheck.IsChecked = _main.BgOnly; // a fresh pick auto-enables wallpaper-only
     }
 
     private void BgApply_Click(object sender, RoutedEventArgs e)

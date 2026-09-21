@@ -388,6 +388,8 @@ public partial class MainWindow : Window
             string dst = System.IO.Path.Combine(AppDataDir, "bg" + ext);
             System.IO.File.Copy(src, dst, overwrite: true);
             SetWallpaperFile("bg" + ext);
+            // A fresh pick means the user wants to see it.
+            SetBgOnly(true);
             DebugLog.Write("wallpaper set: bg" + ext);
         }
         catch (Exception ex) { DebugLog.Write("wallpaper FAIL: " + ex.Message); }
@@ -444,7 +446,9 @@ public partial class MainWindow : Window
 
     private void ApplyBackground()
     {
-        if (string.IsNullOrEmpty(_bgImageFile)) { HideWallpaper(); return; }
+        // The wallpaper only lives on screen while bg-only mode is on.
+        // Unticked = fully unloaded (decoder released, nothing plays underneath).
+        if (!BgOnly || string.IsNullOrEmpty(_bgImageFile)) { HideWallpaper(); return; }
         string path = System.IO.Path.Combine(AppDataDir, _bgImageFile);
         if (!System.IO.File.Exists(path)) { _bgImageFile = ""; HideWallpaper(); return; }
         try
