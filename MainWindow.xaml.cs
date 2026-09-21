@@ -18,7 +18,7 @@ public partial class MainWindow : Window
 
     private readonly VolumeService _vol = new();
     private readonly VolumeKeyHook _hook = new();
-    private readonly SpotifyService _spot = new();
+    private readonly MediaService _media = new();
     private readonly DispatcherTimer _hideTimer = new() { Interval = TimeSpan.FromMilliseconds(3000) };
     private readonly DispatcherTimer _spotTimer = new() { Interval = TimeSpan.FromMilliseconds(500) };
 
@@ -28,20 +28,26 @@ public partial class MainWindow : Window
     private double _uiScale = 300.0 / 218.0; // compact default; Ctrl+Shift+Plus/Minus adjusts, persisted
     private const double FigmaW = 218, FigmaH = 48;
     private string _lastTitle = "";
-    private bool _spotRunning;
+    private bool _mediaRunning;
     private bool _hasSession;
-    private string _spotTitle = "";
-    private string _spotArtist = "";
+    private string _mediaTitle = "";
+    private string _mediaArtist = "";
+    private string _mediaApp = "";
     private string _spotTip = "";
     private string _artKey = ""; // track whose thumbnail is currently shown/fetched
 
-    private void UpdateSpotifyTip()
+    private static readonly SolidColorBrush SpotifyDiscBrush =
+        new(Color.FromRgb(0x1D, 0xB9, 0x54));
+    private static readonly SolidColorBrush NeutralDiscBrush =
+        new(Color.FromRgb(0xD9, 0xD9, 0xD9));
+
+    private void UpdateMediaTip()
     {
         string tip;
-        if (_hasSession && !string.IsNullOrEmpty(_spotTitle))
-            tip = $"{_spotTitle} — {_spotArtist}";
-        else if (_spotRunning)
-            tip = "Spotify";
+        if (_hasSession && !string.IsNullOrEmpty(_mediaTitle))
+            tip = string.IsNullOrEmpty(_mediaApp) ? $"{_mediaTitle} — {_mediaArtist}" : $"{_mediaApp} · {_mediaTitle} — {_mediaArtist}";
+        else if (_mediaRunning)
+            tip = string.IsNullOrEmpty(_mediaApp) ? "Music" : _mediaApp;
         else
             tip = "No media playing";
         if (tip == _spotTip) return;
@@ -192,7 +198,7 @@ public partial class MainWindow : Window
             else if (id == HOTKEY_ALTSHIFT_C)
             {
                 ShowOsd(OsdMode.Spotify);
-                _ = RefreshSpotifyAsync();
+                _ = RefreshMediaAsync();
                 handled = true;
             }
             else if (id == HOTKEY_ALTSHIFT_A)
@@ -610,7 +616,7 @@ public partial class MainWindow : Window
         {
             DebugLog.Write($"Loaded start. work={SystemParameters.WorkArea} size={Width}x{Height}");
             PositionOsd();
-            await _spot.InitAsync();
+            await _media.InitAsync();
 
             _hook.VolumeUp += () => Dispatcher.Invoke(() => { DebugLog.Write("hook VolumeUp"); _vol.ChangeBy(0.05f); ShowOsd(OsdMode.System); });
             _hook.VolumeDown += () => Dispatcher.Invoke(() => { DebugLog.Write("hook VolumeDown"); _vol.ChangeBy(-0.05f); ShowOsd(OsdMode.System); });
@@ -627,7 +633,7 @@ public partial class MainWindow : Window
             });
 
             _hideTimer.Tick += (_, _) => HideOsd();
-            _spotTimer.Tick += async (_, _) => await RefreshSpotifyAsync();
+            _spotTimer.Tick += async (_, _) => await RefreshMediaAsync();
             _spotTimer.Start();
 
             RefreshSystemTrack(_vol.GetVolume(), _vol.GetMute());
@@ -760,7 +766,7 @@ public partial class MainWindow : Window
         _hideTimer.Stop();
         _hideTimer.Interval = TimeSpan.FromMilliseconds(stayMs);
         _hideTimer.Start();
-        // Full speed while visible: 2Hz Spotify poll.
+        // Full speed while visible: 2Hz media poll.
         _spotTimer.Stop();
         _spotTimer.Interval = TimeSpan.FromMilliseconds(500);
         _spotTimer.Start();
@@ -781,7 +787,7 @@ public partial class MainWindow : Window
         _hideTimer.Stop();
         _hideTimer.Interval = TimeSpan.FromMilliseconds(3000);
         Visibility = Visibility.Hidden;
-        // Idle: slow the Spotify poll to 0.5Hz, throttle CPU (Eco leaf), trim RAM.
+        // Idle: slow the media poll to 0.5Hz, throttle CPU (Eco leaf), trim RAM.
         _spotTimer.Stop();
         _spotTimer.Interval = TimeSpan.FromMilliseconds(2000);
         _spotTimer.Start();
@@ -844,7 +850,7 @@ public partial class MainWindow : Window
     {
         // Spec interaction: clicking transport/speaker area toggles Frame1 <-> Frame2
         ShowOsd(_mode == OsdMode.System ? OsdMode.Spotify : OsdMode.System);
-        _ = RefreshSpotifyAsync();
+        _ = RefreshMediaAsync();
     }
 
     // ---------- System track ----------
@@ -887,24 +893,36 @@ public partial class MainWindow : Window
         ShowOsd(OsdMode.System);
     }
 
-    // ---------- Spotify ----------
+    // ---------- Media (any app: Spotify preferred, else last active source) ----------
 
-    private async Task RefreshSpotifyAsync()
+    private async Task RefreshMediaAsync()
     {
-        var st = await _spot.GetStateAsync();
-        _spotRunning = st.Running;
+        var st = await _media.GetStateAsync();
+        _mediaRunning = st.AppRunning;
         _hasSession = st.HasSession;
-        if (!string.IsNullOrEmpty(st.Title)) { _spotTitle = st.Title; _spotArtist = st.Artist; }
+        if (!string.IsNullOrEmpty(st.Title)) { _mediaTitle = st.Title; _mediaArtist = st.Artist; }
+        _mediaApp = st.AppName;
+
+        // Spotify branding only for Spotify; other apps get a neutral disc.
+        // (Static brushes: created once, never mutated, so freezing is harmless.)
+        bool isSpotify = st.AppName == "Spotify";
+        var discFill = isSpotify ? SpotifyDiscBrush : NeutralDiscBrush;
+        SysDisc.Fill = discFill;
+        SpotDisc.Fill = discFill;
+        var logoVis = (isSpotify && SysArt.Visibility != Visibility.Visible)
+            ? Visibility.Visible : Visibility.Collapsed;
+        SysLogo.Visibility = logoVis;
+        SpotLogo.Visibility = logoVis;
 
         // Ring + tooltip reflect session presence: dim ring when nothing to play.
         double ringOpacity = st.HasSession ? 1.0 : 0.35;
         SysRing.Opacity = ringOpacity;
         SpotRing.Opacity = ringOpacity;
-        UpdateSpotifyTip();
+        UpdateMediaTip();
 
-        // Spotify gone while we're hidden: silently fall back so the next
-        // summon shows System instead of an empty Spotify frame.
-        if (!st.Running && !st.HasSession && _shownMode == OsdMode.Spotify && Visibility != Visibility.Visible)
+        // Media app gone while we're hidden: silently fall back so the next
+        // summon shows System instead of an empty media frame.
+        if (!st.AppRunning && !st.HasSession && _shownMode == OsdMode.Spotify && Visibility != Visibility.Visible)
         {
             _mode = OsdMode.System;
             _shownMode = OsdMode.System;
@@ -918,7 +936,7 @@ public partial class MainWindow : Window
             SpotTrans.Y = 0;
         }
 
-        // Track bar = per-app Spotify volume (green-tinted bar on right).
+        // Track bar = per-app media volume (green-tinted bar on right).
         // Don't fight the user while they're dragging (mouse captured by track).
         if (!SpotTrack.IsMouseCaptured)
             SpotFill.Width = Math.Clamp(508 * st.AppVolume, 0, 508);
@@ -941,7 +959,7 @@ public partial class MainWindow : Window
             ClearArt();
         }
 
-        // Auto-switch feel: new track while playing pops the Spotify frame
+        // Auto-switch feel: new track while playing pops the media frame
         if (st.Playing && !string.IsNullOrEmpty(st.Title) && st.Title != _lastTitle)
         {
             _lastTitle = st.Title;
@@ -959,7 +977,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            var session = await _spot.GetSpotifySessionAsync();
+            var session = await _media.GetMediaSessionAsync();
             if (session == null || key != _artKey) return;
             var props = await session.TryGetMediaPropertiesAsync();
             if (key != _artKey) return;
@@ -1031,18 +1049,18 @@ public partial class MainWindow : Window
             ? (float)(1 - pos.Y / SpotTrack.ActualHeight)
             : (float)(pos.X / SpotTrack.ActualWidth);
         ratio = Math.Clamp(ratio, 0f, 1f);
-        _spot.SetSpotifyAppVolume(ratio);
+        _media.SetAppVolume(ratio);
         SpotFill.Width = Math.Clamp(508 * ratio, 0, 508);
         ShowOsd(OsdMode.Spotify);
     }
 
     private async void PlayBtn_Click(object sender, RoutedEventArgs e)
     {
-        if (_hasSession || _spotRunning)
+        if (_hasSession || _mediaRunning)
         {
-            await _spot.TogglePlayPauseAsync();
+            await _media.TogglePlayPauseAsync();
             ShowOsd(OsdMode.Spotify);
-            await RefreshSpotifyAsync();
+            await RefreshMediaAsync();
         }
         else
         {
@@ -1056,25 +1074,25 @@ public partial class MainWindow : Window
 
     private async Task NextTrackAsync()
     {
-        if (!_hasSession && !_spotRunning) { ShowOsd(OsdMode.System); return; }
-        await _spot.NextAsync();
+        if (!_hasSession && !_mediaRunning) { ShowOsd(OsdMode.System); return; }
+        await _media.NextAsync();
         ShowOsd(OsdMode.Spotify);
     }
 
     private async Task PrevTrackAsync()
     {
-        if (!_hasSession && !_spotRunning) { ShowOsd(OsdMode.System); return; }
-        await _spot.PrevAsync();
+        if (!_hasSession && !_mediaRunning) { ShowOsd(OsdMode.System); return; }
+        await _media.PrevAsync();
         ShowOsd(OsdMode.Spotify);
     }
 
-    /// <summary>Nudges whichever slider is active (system master or Spotify app volume).</summary>
+    /// <summary>Nudges whichever slider is active (system master or media app volume).</summary>
     private void AdjustActiveSlider(float delta)
     {
         if (_mode == OsdMode.Spotify)
         {
-            float v = Math.Clamp(_spot.GetSpotifyAppVolume() + delta, 0f, 1f);
-            _spot.SetSpotifyAppVolume(v);
+            float v = Math.Clamp(_media.GetAppVolume() + delta, 0f, 1f);
+            _media.SetAppVolume(v);
             SpotFill.Width = Math.Clamp(508 * v, 0, 508);
             ShowOsd(OsdMode.Spotify);
         }

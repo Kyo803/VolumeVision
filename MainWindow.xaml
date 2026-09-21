@@ -50,7 +50,7 @@
                     </Canvas.RenderTransform>
                     <!-- Speaker 15x15*4=60, pos ~ (28,66) centered vertically -->
                     <Button x:Name="SysSpeakerBtn" Canvas.Left="20" Canvas.Top="60" Width="76" Height="72"
-                            Style="{StaticResource OsdIconBtn}" Click="SpeakerBtn_Click" ToolTip="Click: Spotify mode">
+                            Style="{StaticResource OsdIconBtn}" Click="SpeakerBtn_Click" ToolTip="Click: media mode">
                         <Path x:Name="SysSpeakerPath" Width="60" Height="60" Stretch="Uniform" Fill="{DynamicResource IconFillBrush}" RenderTransformOrigin="0.5,0.5"
                               Data="M8.75 12.9531V11.6719C9.6875 11.401 10.4427 10.8802 11.0156 10.1094C11.5885 9.33854 11.875 8.46354 11.875 7.48438C11.875 6.50521 11.5885 5.63021 11.0156 4.85938C10.4427 4.08854 9.6875 3.56771 8.75 3.29688V2.01562C10.0417 2.30729 11.0938 2.96094 11.9063 3.97656C12.7188 4.99219 13.125 6.16146 13.125 7.48438C13.125 8.80729 12.7188 9.97656 11.9063 10.9922C11.0938 12.0078 10.0417 12.6615 8.75 12.9531ZM1.875 9.375V5.625H4.375L7.5 2.5V12.5L4.375 9.375H1.875ZM8.75 10V4.96875C9.23958 5.19792 9.6224 5.54167 9.89844 6C10.1745 6.45833 10.3125 6.95833 10.3125 7.5C10.3125 8.03125 10.1745 8.52344 9.89844 8.97656C9.6224 9.42969 9.23958 9.77083 8.75 10ZM6.25 5.53125L4.90625 6.875H3.125V8.125H4.90625L6.25 9.46875V5.53125Z"/>
                     </Button>
@@ -74,8 +74,8 @@
                     </Button>
                     <!-- Play with small ring ~71px (17.8*4) -->
                     <Canvas Canvas.Left="732" Canvas.Top="60" Width="72" Height="72">
-                        <Ellipse Width="54" Height="54" Canvas.Left="9" Canvas.Top="9" Fill="#1DB954"/>
-                        <Path Width="54" Height="54" Canvas.Left="9" Canvas.Top="9" Stretch="Uniform" Fill="#191414"
+                        <Ellipse x:Name="SysDisc" Width="54" Height="54" Canvas.Left="9" Canvas.Top="9" Fill="#1DB954"/>
+                        <Path x:Name="SysLogo" Width="54" Height="54" Canvas.Left="9" Canvas.Top="9" Stretch="Uniform" Fill="#191414"
                               Data="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
                         <!-- Album art covers the green/logo fallback when a track has a thumbnail (under ring+button) -->
                         <Ellipse x:Name="SysArt" Width="54" Height="54" Canvas.Left="9" Canvas.Top="9" Visibility="Collapsed">
@@ -117,8 +117,8 @@
                     </Button>
                     <!-- Play with full ring 23x23*4=92 -->
                     <Canvas Canvas.Left="148" Canvas.Top="50" Width="92" Height="92">
-                        <Ellipse Width="72" Height="72" Canvas.Left="10" Canvas.Top="10" Fill="#1DB954"/>
-                        <Path Width="72" Height="72" Canvas.Left="10" Canvas.Top="10" Stretch="Uniform" Fill="#191414"
+                        <Ellipse x:Name="SpotDisc" Width="72" Height="72" Canvas.Left="10" Canvas.Top="10" Fill="#1DB954"/>
+                        <Path x:Name="SpotLogo" Width="72" Height="72" Canvas.Left="10" Canvas.Top="10" Stretch="Uniform" Fill="#191414"
                               Data="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
                         <!-- Album art covers the green/logo fallback when a track has a thumbnail (under ring+button) -->
                         <Ellipse x:Name="SpotArt" Width="72" Height="72" Canvas.Left="10" Canvas.Top="10" Visibility="Collapsed">
