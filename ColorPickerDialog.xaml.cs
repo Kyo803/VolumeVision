@@ -12,6 +12,7 @@ public partial class ColorPickerDialog : Window
     private double _h; // 0..360
     private double _s; // 0..1
     private double _v; // 0..1
+    private byte _a = 255;
     private bool _updating;
 
     public ColorPickerDialog(Color initial)
@@ -20,6 +21,7 @@ public partial class ColorPickerDialog : Window
         SelectedColor = initial;
         CurrentSwatch.Background = new SolidColorBrush(initial);
         (_h, _s, _v) = ToHsv(initial);
+        _a = initial.A;
         RefreshUI();
     }
 
@@ -57,7 +59,7 @@ public partial class ColorPickerDialog : Window
             (byte)Math.Round((b + m) * 255));
     }
 
-    private Color Current => FromHsv(_h, _s, _v, SelectedColor.A);
+    private Color Current => FromHsv(_h, _s, _v, _a);
 
     private void RefreshUI()
     {
@@ -78,6 +80,8 @@ public partial class ColorPickerDialog : Window
             HVal.Text = $"{_h:F0}°";
             SVal.Text = $"{_s * 100:F0}%";
             BVal.Text = $"{_v * 100:F0}%";
+            AlphaSlider.Value = _a;
+            AlphaVal.Text = $"{_a}";
         }
         finally { _updating = false; }
     }
@@ -151,6 +155,14 @@ public partial class ColorPickerDialog : Window
             (_h, _s, _v) = ToHsv(c);
             RefreshUI();
         }
+    }
+
+    private void Alpha_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_updating || AlphaVal == null) return;
+        _a = (byte)Math.Clamp(e.NewValue, 0, 255);
+        AlphaVal.Text = $"{_a}";
+        RefreshUI();
     }
 
     private void Ok_Click(object sender, RoutedEventArgs e)

@@ -81,6 +81,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 <TextBlock Text="R" VerticalAlignment="Center" Margin="0,2,6,2"/>
                 <TextBox x:Name="RBox" Grid.Column="1" Margin="0,2" TextChanged="Rgb_Changed"/>
@@ -96,6 +97,9 @@
                 <TextBlock x:Name="BVal" Grid.Row="2" Grid.Column="3" VerticalAlignment="Center"/>
                 <TextBlock Grid.Row="3" Text="#" VerticalAlignment="Center" Margin="0,2,6,2"/>
                 <TextBox x:Name="HexBox" Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="3" Margin="0,2" TextChanged="Hex_Changed"/>
+                <TextBlock Grid.Row="4" Text="Op." VerticalAlignment="Center" Margin="0,2,6,2"/>
+                <Slider x:Name="AlphaSlider" Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2" Minimum="0" Maximum="255" VerticalAlignment="Center" ValueChanged="Alpha_Changed"/>
+                <TextBlock x:Name="AlphaVal" Grid.Row="4" Grid.Column="3" TextAlignment="Right" VerticalAlignment="Center"/>
             </Grid>
             <Grid Margin="0,10,0,0">
                 <Grid.ColumnDefinitions>

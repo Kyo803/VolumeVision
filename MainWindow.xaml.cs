@@ -310,11 +310,14 @@ public partial class MainWindow : Window
 
     public void ApplyColors()
     {
-        // Background takes its alpha from the glass slider; tint keeps its own alpha.
+        // Background alpha = glass slider × picked alpha (so "no fill" survives).
         // (Brushes live in Resources as new instances each time because App.xaml
         //  brushes are frozen by WPF and can't be mutated in place.)
         if (TryParseColor(_colors["bg"], out var bg))
-            SetRes("PillBgBrush", Color.FromArgb((byte)(255 * Glass), bg.R, bg.G, bg.B));
+        {
+            byte a = (byte)Math.Round(255 * Glass * (bg.A / 255.0));
+            SetRes("PillBgBrush", Color.FromArgb(a, bg.R, bg.G, bg.B));
+        }
         foreach (var (key, res) in new[] { ("border", "PillBorderBrush"), ("track", "TrackBgBrush"),
             ("trackFill", "TrackFillGrayBrush"), ("tint", "SpotifyTintBrush"),
             ("ring", "RingGreenBrush"), ("icons", "IconFillBrush") })

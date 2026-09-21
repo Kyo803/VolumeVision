@@ -168,15 +168,14 @@ public partial class SettingsWindow : Window
         string key = ((Button)sender).Tag as string ?? "";
         Color start = Colors.White;
         try { start = (Color)ColorConverter.ConvertFromString(_main.GetColorHex(key)); } catch { }
-        var dlg = new ColorPickerDialog(Color.FromRgb(start.R, start.G, start.B)) { Owner = this };
+        var dlg = new ColorPickerDialog(start) { Owner = this };
         if (dlg.ShowDialog() == true)
         {
-            // Preserve the original alpha (e.g. the 20% Spotify tint).
+            // Preserve the picked alpha (opacity slider); 8-digit hex when translucent.
             var picked = dlg.SelectedColor;
-            byte a = start.A;
-            string hex = a == 255
+            string hex = picked.A == 255
                 ? $"#{picked.R:X2}{picked.G:X2}{picked.B:X2}"
-                : $"#{a:X2}{picked.R:X2}{picked.G:X2}{picked.B:X2}";
+                : $"#{picked.A:X2}{picked.R:X2}{picked.G:X2}{picked.B:X2}";
             _boxes[key].Text = hex; // TextChanged applies + repaints swatch
         }
     }
