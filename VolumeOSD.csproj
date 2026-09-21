@@ -16,7 +16,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Resource Include="Assets\logo.png" />
+    <EmbeddedResource Include="Assets\logo.png">
+      <LogicalName>VolumeOSD.Assets.logo.png</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>

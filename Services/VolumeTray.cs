@@ -69,11 +69,15 @@ public sealed class VolumeTray : IDisposable
                 if (v is int i) lightTaskbar = i == 1;
             }
             catch { }
-            var uri = new Uri("pack://application:,,,/Assets/logo.png");
-            var streamInfo = System.Windows.Application.GetResourceStream(uri);
-            if (streamInfo == null) return BuildFallbackIcon();
-            DebugLog.Write($"tray logo from asset, theme={(lightTaskbar ? "light" : "dark")}");
-            using var src = new System.Drawing.Bitmap(streamInfo.Stream);
+            var asm = typeof(VolumeTray).Assembly;
+            using var res = asm.GetManifestResourceStream("VolumeOSD.Assets.logo.png");
+            if (res == null)
+            {
+                DebugLog.Write("tray logo stream NULL; manifest=" + string.Join(";", asm.GetManifestResourceNames()));
+                return BuildFallbackIcon();
+            }
+            DebugLog.Write($"tray spider logo active, theme={(lightTaskbar ? "light" : "dark")}");
+            using var src = new System.Drawing.Bitmap(res);
             const int S = 64;
             using var small = new System.Drawing.Bitmap(src, new System.Drawing.Size(S, S));
             using var out_ = new System.Drawing.Bitmap(S, S);
@@ -91,7 +95,11 @@ public sealed class VolumeTray : IDisposable
                 }
             return out_.GetHicon();
         }
-        catch { return BuildFallbackIcon(); }
+        catch (Exception ex)
+        {
+            DebugLog.Write("tray logo FAIL, fallback disc: " + ex.GetType().Name + ": " + ex.Message);
+            return BuildFallbackIcon();
+        }
     }
 
     private static IntPtr BuildFallbackIcon()
