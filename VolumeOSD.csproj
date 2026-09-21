@@ -7,12 +7,17 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <RootNamespace>VolumeOSD</RootNamespace>
     <AssemblyName>V^2</AssemblyName>
     <Version>1.1.0</Version>
     <Authors>VolumeOSD</Authors>
     <Description>Custom Windows volume OSD pill with Spotify control (WPF, NAudio, SMTC)</Description>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\logo.png" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="KgySoft.Drawing" Version="8.*" />

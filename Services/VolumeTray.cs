@@ -22,7 +22,7 @@ public sealed class VolumeTray : IDisposable
     public VolumeTray(MainWindow main)
     {
         _main = main;
-        _hIcon = BuildIconHandle();
+        _hIcon = BuildLogoIcon();
         _icon = new WinForms.NotifyIcon
         {
             Icon = Icon.FromHandle(_hIcon),
@@ -53,7 +53,48 @@ public sealed class VolumeTray : IDisposable
         _icon.DoubleClick += (_, _) => _main.Dispatcher.Invoke(_main.Summon);
     }
 
-    private static IntPtr BuildIconHandle()
+    /// <summary>Spider logo from embedded Assets/logo.png, recolored for the
+    /// taskbar theme (white on dark, black on light). Falls back to the drawn
+    /// disc if anything fails.</summary>
+    private static IntPtr BuildLogoIcon()
+    {
+        try
+        {
+            bool lightTaskbar = false;
+            try
+            {
+                var v = Microsoft.Win32.Registry.GetValue(
+                    @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
+                    "SystemUsesLightTheme", 0);
+                if (v is int i) lightTaskbar = i == 1;
+            }
+            catch { }
+            var uri = new Uri("pack://application:,,,/Assets/logo.png");
+            var streamInfo = System.Windows.Application.GetResourceStream(uri);
+            if (streamInfo == null) return BuildFallbackIcon();
+            DebugLog.Write($"tray logo from asset, theme={(lightTaskbar ? "light" : "dark")}");
+            using var src = new System.Drawing.Bitmap(streamInfo.Stream);
+            const int S = 64;
+            using var small = new System.Drawing.Bitmap(src, new System.Drawing.Size(S, S));
+            using var out_ = new System.Drawing.Bitmap(S, S);
+            var ink = lightTaskbar
+                ? System.Drawing.Color.FromArgb(25, 20, 20)
+                : System.Drawing.Color.FromArgb(245, 245, 245);
+            for (int y = 0; y < S; y++)
+                for (int x = 0; x < S; x++)
+                {
+                    var p = small.GetPixel(x, y);
+                    int m = Math.Min(p.R, Math.Min(p.G, p.B));
+                    out_.SetPixel(x, y, m < 200
+                        ? System.Drawing.Color.FromArgb(255, ink.R, ink.G, ink.B)
+                        : System.Drawing.Color.FromArgb(0, 0, 0, 0));
+                }
+            return out_.GetHicon();
+        }
+        catch { return BuildFallbackIcon(); }
+    }
+
+    private static IntPtr BuildFallbackIcon()
     {
         using var bmp = new Bitmap(64, 64);
         using (var g = Graphics.FromImage(bmp))
