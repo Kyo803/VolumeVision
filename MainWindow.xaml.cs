@@ -572,9 +572,13 @@ public partial class MainWindow : Window
         GlossOverlay.CornerRadius = new CornerRadius(h / 2);
         BgClip.CornerRadius = new CornerRadius(h / 2);
         GlassTint.CornerRadius = new CornerRadius(h / 2);
-        // Border doesn't clip its child to rounded corners — clip the wallpaper manually.
+        // Border doesn't clip its child to rounded corners — clip the wallpaper
+        // manually, inset by the 1px ring so bright art can never fringe past it.
         double cw = vert ? h : w, ch = vert ? w : h;
-        BgClip.Clip = new RectangleGeometry(new Rect(0, 0, cw, ch), h / 2, h / 2);
+        const double bt = 1.0;
+        BgClip.Clip = new RectangleGeometry(
+            new Rect(bt, bt, Math.Max(1, cw - 2 * bt), Math.Max(1, ch - 2 * bt)),
+            Math.Max(1, h / 2 - bt), Math.Max(1, h / 2 - bt));
         OsdViewBox.Width = w;
         OsdViewBox.Height = h;
         BgClip.CornerRadius = new CornerRadius(h / 2);
