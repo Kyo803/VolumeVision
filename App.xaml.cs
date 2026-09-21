@@ -11,7 +11,7 @@ public partial class App : Application
     {
         Services.DebugLog.Write("App.OnStartup enter");
         // Single instance: second launch just exits (prevents double volume steps + double pills)
-        _mutex = new Mutex(true, "VolumeOSD_SingleInstance", out bool created);
+        _mutex = new Mutex(true, "V^2_SingleInstance", out bool created);
         if (!created)
         {
             Services.DebugLog.Write("App.OnStartup second instance -> exit");

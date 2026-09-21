@@ -1,7 +1,7 @@
 <Window x:Class="VolumeOSD.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="VolumeOSD Settings" Width="380" SizeToContent="Height"
+        Title="V^2 Settings" Width="380" SizeToContent="Height"
         Background="#111114" Foreground="#F2F2F5" ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen">
     <StackPanel Margin="16" Orientation="Vertical">

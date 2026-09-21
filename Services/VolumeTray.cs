@@ -26,7 +26,7 @@ public sealed class VolumeTray : IDisposable
         _icon = new WinForms.NotifyIcon
         {
             Icon = Icon.FromHandle(_hIcon),
-            Text = "VolumeOSD — custom volume bar",
+            Text = "V^2 — custom volume bar",
             Visible = true,
         };
 

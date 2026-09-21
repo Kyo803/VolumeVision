@@ -13,9 +13,9 @@ public static class Uninstaller
     public static void RunUninstall(Window? owner)
     {
         var res = MessageBox.Show(owner,
-            "Remove VolumeOSD?\n\nThis deletes the login autostart entry, settings, " +
+            "Remove V^2?\n\nThis deletes the login autostart entry, settings, " +
             "shortcuts and the application file itself, then exits.",
-            "Uninstall VolumeOSD",
+            "Uninstall V^2",
             MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
         if (res != MessageBoxResult.Yes) return;
 
@@ -42,13 +42,14 @@ public static class Uninstaller
             string desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
             string[] paths =
             {
-                Path.Combine(startMenu, "VolumeOSD.lnk"),
-                Path.Combine(desktop, "VolumeOSD.lnk"),
+                Path.Combine(startMenu, "V^2.lnk"),
+                Path.Combine(desktop, "V^2.lnk"),
+                Path.Combine(startMenu, "VolumeOSD.lnk"), // pre-rename leftover
             };
             foreach (var p in paths)
                 if (File.Exists(p)) File.Delete(p);
-            string group = Path.Combine(startMenu, "VolumeOSD");
-            if (Directory.Exists(group)) Directory.Delete(group, recursive: true);
+            foreach (var g in new[] { Path.Combine(startMenu, "V^2"), Path.Combine(startMenu, "VolumeOSD") })
+                if (Directory.Exists(g)) Directory.Delete(g, recursive: true);
             DebugLog.Write("uninstall: shortcuts removed");
         }
         catch (Exception ex) { DebugLog.Write("uninstall shortcuts FAIL: " + ex.Message); }
