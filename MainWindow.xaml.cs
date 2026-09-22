@@ -19,6 +19,7 @@ public partial class MainWindow : Window
     private readonly VolumeService _vol = new();
     private readonly VolumeKeyHook _hook = new();
     private readonly MediaService _media = new();
+    public double SystemVolume => _vol.GetVolume();
     private readonly DispatcherTimer _hideTimer = new() { Interval = TimeSpan.FromMilliseconds(3000) };
     private readonly DispatcherTimer _spotTimer = new() { Interval = TimeSpan.FromMilliseconds(500) };
 
@@ -224,6 +225,7 @@ public partial class MainWindow : Window
     // Wallpaper (filename inside AppDataDir) + animated slider shimmer toggle.
     private string _bgImageFile = "";
     public string BgImageName => string.IsNullOrEmpty(_bgImageFile) ? "None (solid color)" : _bgImageFile;
+    public string WallpaperFilePath => string.IsNullOrEmpty(_bgImageFile) ? "" : System.IO.Path.Combine(AppDataDir, _bgImageFile);
     public bool SliderFx { get; private set; } = true;
     /// <summary>When true (and a wallpaper is set), the solid glass color is
     /// dropped so the animation shows through at full vibrancy.</summary>
