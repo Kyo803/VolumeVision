@@ -833,7 +833,19 @@ public partial class MainWindow : Window
         _hideTimer.Stop();
         _hideTimer.Interval = TimeSpan.FromMilliseconds(3000);
         _hideTimer.Start();
+        GlowLayer.Opacity = 0;
         DebugLog.Write("hover leave -> hide in 3s");
+    }
+
+    private void Pill_MouseMove(object sender, MouseEventArgs e)
+    {
+        var pos = e.GetPosition(Pill);
+        if (Pill.ActualWidth <= 0 || Pill.ActualHeight <= 0) return;
+        var brush = (RadialGradientBrush)FindResource("CursorGlow");
+        var origin = new Point(pos.X / Pill.ActualWidth, pos.Y / Pill.ActualHeight);
+        brush.GradientOrigin = origin;
+        brush.Center = origin;
+        GlowLayer.Opacity = 0.9;
     }
 
     private void RestartHideAfterPointer()
