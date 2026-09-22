@@ -49,7 +49,10 @@ public partial class SettingsWindow : Window
         SizeSlider.Value = _main.UiScale * 100;
         BgOnlyCheck.IsChecked = _main.BgOnly;
         BgName.Text = _main.BgImageName;
+        foreach (var b in new[] { PosTop, PosBottom, PosLeft, PosRight })
+            b.Opacity = ((b.Tag as string) == _main.Position) ? 1.0 : 0.52;
         RefreshPreviewPills();
+        RefreshWallpaperPreview();
         HotkeyHint.Text = $"Hotkeys: {_main.SettingsHotkeyLabel} settings · Ctrl+Shift+V summon · Ctrl+Shift+Plus/Minus resize · Alt+X/S overlay · Alt+Z/C prev/next";
     }
 
@@ -76,12 +79,44 @@ public partial class SettingsWindow : Window
         try
         {
             string file = _main.WallpaperFilePath;
-            if (string.IsNullOrEmpty(file) || !System.IO.File.Exists(file))
+            bool has = !string.IsNullOrEmpty(file) && System.IO.File.Exists(file);
+            // Show animation on all three previews, respect bgOnly gate
+            bool show = has && _main.BgOnly;
+            foreach (var img in new[] { SysPreviewBg, SpotPreviewBg, LivePreviewBg })
             {
-                SpotDiscPreview.Opacity = 0.35;
-                return;
+                if (img == null) continue;
+                if (show)
+                {
+                    try
+                    {
+                        var bmp = new BitmapImage();
+                        bmp.BeginInit();
+                        bmp.UriSource = new Uri(file);
+                        bmp.CacheOption = BitmapCacheOption.OnLoad;
+                        bmp.EndInit();
+                        if (file.EndsWith(".gif", StringComparison.OrdinalIgnoreCase))
+                        {
+                            WpfAnimatedGif.ImageBehavior.SetAnimatedSource(img, bmp);
+                            WpfAnimatedGif.ImageBehavior.SetRepeatBehavior(img, System.Windows.Media.Animation.RepeatBehavior.Forever);
+                        }
+                        else
+                        {
+                            WpfAnimatedGif.ImageBehavior.SetAnimatedSource(img, null);
+                            img.Source = bmp;
+                        }
+                        img.Visibility = Visibility.Visible;
+                    }
+                    catch { img.Visibility = Visibility.Collapsed; }
+                }
+                else
+                {
+                    WpfAnimatedGif.ImageBehavior.SetAnimatedSource(img, null);
+                    img.Source = null;
+                    img.Visibility = Visibility.Collapsed;
+                }
             }
-            SpotDiscPreview.Opacity = 1;
+            foreach (var tint in new[] { SysPreviewTint, SpotPreviewTint, LivePreviewTint })
+                if (tint != null) tint.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
         }
         catch { }
     }
@@ -155,6 +190,16 @@ public partial class SettingsWindow : Window
     {
         if (_loading) return;
         _main.SetBgOnly(BgOnlyCheck.IsChecked == true);
+        RefreshWallpaperPreview();
+    }
+
+    private void Pos_Click(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        string pos = (sender as Button)?.Tag as string ?? "Bottom";
+        _main.ApplyPosition(pos);
+        foreach (var b in new[] { PosTop, PosBottom, PosLeft, PosRight })
+            b.Opacity = ((b.Tag as string) == _main.Position) ? 1.0 : 0.52;
     }
 
     private void Studio_Click(object sender, RoutedEventArgs e)

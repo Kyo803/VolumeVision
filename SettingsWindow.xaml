@@ -23,55 +23,75 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <!-- System Volume mini pill -->
+            <!-- System Volume mini pill - exact live preview -->
             <Border Grid.Row="0" Width="280" Height="50" CornerRadius="25"
-                    HorizontalAlignment="Left" Background="#18FFFFFF"
-                    BorderBrush="#12FFFFFF" BorderThickness="1" Margin="0,0,0,10">
+                    HorizontalAlignment="Left" Background="{DynamicResource PillBgBrush}"
+                    BorderBrush="{DynamicResource PillBorderBrush}" BorderThickness="1" Margin="0,0,0,10" ClipToBounds="True">
                 <Grid>
+                    <Image x:Name="SysPreviewBg" Stretch="UniformToFill" Visibility="Collapsed"
+                           gif:ImageBehavior.AnimatedSource="{Binding ElementName=SysPreviewBg, Path=Tag}"
+                           gif:ImageBehavior.RepeatBehavior="Forever"/>
+                    <Border Background="{DynamicResource PillBgBrush}" Opacity="0.45" CornerRadius="25"
+                            x:Name="SysPreviewTint"/>
+                    <Grid Margin="12,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <Path Grid.Column="0" Width="16" Height="16" Stretch="Uniform" Fill="#E0E0E0"
-                          Margin="12,0,8,0" VerticalAlignment="Center"
+                    <Path Grid.Column="0" Width="16" Height="16" Stretch="Uniform" Fill="{DynamicResource IconFillBrush}"
+                          Margin="0,0,8,0" VerticalAlignment="Center"
                           Data="M8.75 12.9531V11.6719C9.6875 11.401 10.4427 10.8802 11.0156 10.1094C11.5885 9.33854 11.875 8.46354 11.875 7.48438C11.875 6.50521 11.5885 5.63021 11.0156 4.85938C10.4427 4.08854 9.6875 3.56771 8.75 3.29688V2.01562C10.0417 2.30729 11.0938 2.96094 11.9063 3.97656C12.7188 4.99219 13.125 6.16146 13.125 7.48438C13.125 8.80729 12.7188 9.97656 11.9063 10.9922C11.0938 12.0078 10.0417 12.6615 8.75 12.9531ZM1.875 9.375V5.625H4.375L7.5 2.5V12.5L4.375 9.375H1.875ZM8.75 10V4.96875C9.23958 5.19792 9.6224 5.54167 9.89844 6C10.1745 6.45833 10.3125 6.95833 10.3125 7.5C10.3125 8.03125 10.1745 8.52344 9.89844 8.97656C9.6224 9.42969 9.23958 9.77083 8.75 10ZM6.25 5.53125L4.90625 6.875H3.125V8.125H4.90625L6.25 9.46875V5.53125Z"/>
-                    <Border Grid.Column="1" Height="8" CornerRadius="4" Background="#22FFFFFF" VerticalAlignment="Center" Margin="0,0,8,0">
+                    <Border Grid.Column="1" Height="8" CornerRadius="4" Background="{DynamicResource TrackBgBrush}" VerticalAlignment="Center" Margin="0,0,8,0">
                         <Border x:Name="SysTrackPreview" HorizontalAlignment="Left" Width="80" Height="8" CornerRadius="4"
-                                Background="#8A8A8A"/>
+                                Background="{DynamicResource TrackFillGrayBrush}"/>
                     </Border>
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Path Width="12" Height="12" Stretch="Uniform" Fill="#E0E0E0" Margin="0,0,6,0"
+                        <Path Width="12" Height="12" Stretch="Uniform" Fill="{DynamicResource IconFillBrush}" Margin="0,0,6,0"
                               Data="M8.6 12L14.6 6L16 7.4L11.4 12L16 16.6L14.6 18L8.6 12Z"/>
-                        <Ellipse x:Name="SysDiscPreview" Width="22" Height="22" Fill="#1DB954" Margin="0,0,6,0"/>
-                        <Path Width="12" Height="12" Stretch="Uniform" Fill="#E0E0E0"
+                        <Ellipse x:Name="SysDiscPreview" Width="22" Height="22" Margin="0,0,6,0">
+                            <Ellipse.Fill>
+                                <SolidColorBrush Color="#1DB954"/>
+                            </Ellipse.Fill>
+                        </Ellipse>
+                        <Path Width="12" Height="12" Stretch="Uniform" Fill="{DynamicResource IconFillBrush}"
                               Data="M10.4501 9.5L6.80842 5.85833L7.91675 4.75L12.6667 9.5L7.91675 14.25L6.80841 13.1417L10.4501 9.5Z"/>
                     </StackPanel>
+                    </Grid>
                 </Grid>
             </Border>
 
-            <!-- Media mini pill -->
+            <!-- Media mini pill - exact live preview -->
             <Border Grid.Row="1" Width="280" Height="50" CornerRadius="25"
-                    HorizontalAlignment="Left" Background="#18FFFFFF"
-                    BorderBrush="#12FFFFFF" BorderThickness="1" Margin="0,0,0,10">
+                    HorizontalAlignment="Left" Background="{DynamicResource PillBgBrush}"
+                    BorderBrush="{DynamicResource PillBorderBrush}" BorderThickness="1" Margin="0,0,0,10" ClipToBounds="True">
                 <Grid>
+                    <Image x:Name="SpotPreviewBg" Stretch="UniformToFill" Visibility="Collapsed"/>
+                    <Border Background="{DynamicResource PillBgBrush}" Opacity="0.45" CornerRadius="25"
+                            x:Name="SpotPreviewTint"/>
+                    <Grid Margin="12,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,8,0">
-                        <Path Width="12" Height="12" Stretch="Uniform" Fill="#999999" Margin="0,0,6,0"
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
+                        <Path Width="12" Height="12" Stretch="Uniform" Fill="{DynamicResource IconFillBrush}" Margin="0,0,6,0"
                               Data="M8.6 12L14.6 6L16 7.4L11.4 12L16 16.6L14.6 18L8.6 12Z"/>
-                        <Ellipse x:Name="SpotDiscPreview" Width="22" Height="22" Fill="#1DB954" Margin="0,0,6,0"/>
-                        <Path Width="12" Height="12" Stretch="Uniform" Fill="#999999"
+                        <Ellipse x:Name="SpotDiscPreview2" Width="22" Height="22" Margin="0,0,6,0">
+                            <Ellipse.Fill><SolidColorBrush Color="#1DB954"/></Ellipse.Fill>
+                        </Ellipse>
+                        <Path Width="12" Height="12" Stretch="Uniform" Fill="{DynamicResource IconFillBrush}"
                               Data="M10.4501 9.5L6.80842 5.85833L7.91675 4.75L12.6667 9.5L7.91675 14.25L6.80841 13.1417L10.4501 9.5Z"/>
                     </StackPanel>
-                    <Border Grid.Column="1" Height="8" CornerRadius="4" Background="#22FFFFFF" VerticalAlignment="Center" Margin="0,0,8,0">
+                    <Border Grid.Column="1" Height="8" CornerRadius="4" Background="{DynamicResource TrackBgBrush}" VerticalAlignment="Center" Margin="0,0,8,0">
                         <Border x:Name="SpotTrackPreview" HorizontalAlignment="Left" Width="50" Height="8" CornerRadius="4"
-                                Background="#8A8A8A"/>
+                                Background="{DynamicResource TrackFillGrayBrush}"/>
                     </Border>
-                    <Ellipse Grid.Column="2" Width="22" Height="22" Fill="#2DA63B" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <Ellipse x:Name="SpotDiscPreview" Grid.Column="2" Width="22" Height="22" VerticalAlignment="Center" Margin="0,0,0,0">
+                        <Ellipse.Fill><SolidColorBrush Color="#2DA63B"/></Ellipse.Fill>
+                    </Ellipse>
+                    </Grid>
                 </Grid>
             </Border>
 
@@ -100,25 +120,32 @@
 
             <!-- Live animated pill preview (bottom) -->
             <Border Grid.Row="4" Width="280" Height="50" CornerRadius="25"
-                    HorizontalAlignment="Left" Background="#18FFFFFF"
-                    BorderBrush="#12FFFFFF" BorderThickness="1" Margin="0,0,0,4">
+                    HorizontalAlignment="Left" BorderThickness="1" Margin="0,0,0,4" ClipToBounds="True"
+                    Background="{DynamicResource PillBgBrush}" BorderBrush="{DynamicResource PillBorderBrush}">
                 <Grid>
+                    <Image x:Name="LivePreviewBg" Stretch="UniformToFill" Visibility="Collapsed"/>
+                    <Border Background="{DynamicResource PillBgBrush}" Opacity="0.45" CornerRadius="25"
+                            x:Name="LivePreviewTint"/>
+                    <Grid Margin="12,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <Ellipse Grid.Column="0" Width="22" Height="22" Fill="#2DA63B" VerticalAlignment="Center" Margin="12,0,8,0"/>
+                    <Ellipse Grid.Column="0" Width="22" Height="22" VerticalAlignment="Center" Margin="0,0,8,0">
+                        <Ellipse.Fill><SolidColorBrush Color="#2DA63B"/></Ellipse.Fill>
+                    </Ellipse>
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Path Width="12" Height="12" Stretch="Uniform" Fill="#999999" Margin="0,0,6,0"
+                        <Path Width="12" Height="12" Stretch="Uniform" Fill="{DynamicResource IconFillBrush}" Margin="0,0,6,0"
                               Data="M8.6 12L14.6 6L16 7.4L11.4 12L16 16.6L14.6 18L8.6 12Z"/>
-                        <Path Width="12" Height="12" Stretch="Uniform" Fill="#999999"
+                        <Path Width="12" Height="12" Stretch="Uniform" Fill="{DynamicResource IconFillBrush}"
                               Data="M10.4501 9.5L6.80842 5.85833L7.91675 4.75L12.6667 9.5L7.91675 14.25L6.80841 13.1417L10.4501 9.5Z"/>
                     </StackPanel>
-                    <Border Grid.Column="2" Height="8" Width="80" CornerRadius="4" Background="#22FFFFFF" VerticalAlignment="Center" Margin="0,0,12,0">
+                    <Border Grid.Column="2" Height="8" Width="80" CornerRadius="4" Background="{DynamicResource TrackBgBrush}" VerticalAlignment="Center" Margin="0,0,0,0">
                         <Border x:Name="LiveTrackPreview" HorizontalAlignment="Left" Width="55" Height="8" CornerRadius="4"
-                                Background="#8A8A8A"/>
+                                Background="{DynamicResource TrackFillGrayBrush}"/>
                     </Border>
+                    </Grid>
                 </Grid>
             </Border>
             <TextBlock Grid.Row="5" x:Name="BgName" Text="None" Foreground="#555555" FontSize="11" Margin="4,0,0,0"/>
@@ -137,7 +164,18 @@
 
             <!-- Colors heading -->
             <TextBlock Grid.Row="0" Text="Colors" FontSize="24" FontWeight="SemiBold"
-                       Foreground="#F2F2F5" Margin="0,0,0,10"/>
+                       Foreground="#F2F2F5" Margin="0,0,0,6"/>
+            <!-- Position (kept from earlier version, compact) -->
+            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,6,0,0">
+                <Button x:Name="PosTop" Content="Top" Padding="10,3" Margin="0,0,4,0" Click="Pos_Click" Tag="Top"
+                        Background="#1AFFFFFF" Foreground="#F2F2F5" BorderThickness="0" FontSize="11"/>
+                <Button x:Name="PosBottom" Content="Bottom" Padding="10,3" Margin="0,0,4,0" Click="Pos_Click" Tag="Bottom"
+                        Background="#1AFFFFFF" Foreground="#F2F2F5" BorderThickness="0" FontSize="11"/>
+                <Button x:Name="PosLeft" Content="Left" Padding="10,3" Margin="0,0,4,0" Click="Pos_Click" Tag="Left"
+                        Background="#1AFFFFFF" Foreground="#F2F2F5" BorderThickness="0" FontSize="11"/>
+                <Button x:Name="PosRight" Content="Right" Padding="10,3" Click="Pos_Click" Tag="Right"
+                        Background="#1AFFFFFF" Foreground="#F2F2F5" BorderThickness="0" FontSize="11"/>
+            </StackPanel>
 
             <!-- Color swatches: 2 columns -->
             <Grid Grid.Row="1" Margin="0,0,0,20">

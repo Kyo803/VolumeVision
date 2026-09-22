@@ -346,14 +346,36 @@ public partial class MainWindow : Window
     public void SetGlass(double v)
     {
         Glass = Math.Clamp(v, 0.4, 1.0);
-        ApplyColors();
+        // smooth glass transition: color animation on alpha
+        if (TryParseColor(_colors["bg"], out var bg))
+        {
+            byte targetA = (byte)Math.Round(255 * Glass * (bg.A / 255.0));
+            var from = (Color)ColorConverter.ConvertFromString(((SolidColorBrush)FindResource("PillBgBrush")).Color.ToString());
+            // direct set already in ApplyColors will be animated via helper below; keep ApplyColors for other keys
+            var animBrush = new SolidColorBrush(Color.FromArgb(targetA, bg.R, bg.G, bg.B));
+            Application.Current.Resources["PillBgBrush"] = animBrush;
+            var ca = new ColorAnimation(Color.FromArgb(from.A, bg.R, bg.G, bg.B), Color.FromArgb(targetA, bg.R, bg.G, bg.B), TimeSpan.FromMilliseconds(180))
+            { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
+            animBrush.BeginAnimation(SolidColorBrush.ColorProperty, ca);
+            // sync other colors without re-setting bg
+            foreach (var (key, res) in new[] { ("border", "PillBorderBrush"), ("track", "TrackBgBrush"),
+                ("trackFill", "TrackFillGrayBrush"), ("tint", "SpotifyTintBrush"),
+                ("ring", "RingGreenBrush"), ("icons", "IconFillBrush") })
+                if (TryParseColor(_colors[key], out var c))
+                    SetRes(res, c);
+            GlossOverlay.Opacity = 0.55 * Gloss;
+        }
+        else ApplyColors();
         SaveSettings();
     }
 
     public void SetGloss(double v)
     {
         Gloss = Math.Clamp(v, 0.0, 1.5);
-        ApplyColors();
+        double target = 0.55 * Gloss;
+        var da = new DoubleAnimation(GlossOverlay.Opacity, target, TimeSpan.FromMilliseconds(220))
+        { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
+        GlossOverlay.BeginAnimation(UIElement.OpacityProperty, da);
         SaveSettings();
     }
 
