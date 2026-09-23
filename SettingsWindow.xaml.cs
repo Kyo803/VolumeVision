@@ -76,15 +76,63 @@ public partial class SettingsWindow : Window
         FrostSlider.Value = _main.Frost * 100;
         BgOnlyCheck.IsChecked = _main.BgOnly;
         BgName.Text = _main.BgImageName;
-        // Previews mirror the real pill's border so what you see is what you get.
-        var bt = new Thickness(Math.Min(_main.BorderWidth, 4));
-        SysPreviewPill.BorderThickness = bt;
-        SpotPreviewPill.BorderThickness = bt;
-        LivePreviewPill.BorderThickness = bt;
         UpdateDockButtons();
+        RefreshPreviews();
         RefreshPreviewPills();
         RefreshWallpaperPreview();
         HotkeyHint.Text = $"Hotkeys: {_main.SettingsHotkeyLabel} settings · Ctrl+Shift+V summon · Ctrl+Shift+Plus/Minus resize · Alt+X/S overlay · Alt+Z/C prev/next";
+    }
+
+    /// <summary>
+    /// Makes the three mini pills mirror EVERY appearance setting: colours come
+    /// from the shared brushes, and corner/size/border/track/shadow/frost/gloss
+    /// are applied here explicitly.
+    /// </summary>
+    private void RefreshPreviews()
+    {
+        var pills = new[] { SysPreviewPill, SpotPreviewPill, LivePreviewPill };
+        var glosses = new[] { SysPreviewGloss, SpotPreviewGloss, LivePreviewGloss };
+        var images = new[] { SysPreviewBg, SpotPreviewBg, LivePreviewBg };
+
+        // Corner (relative to the preview height), border width, size hint.
+        double h = 56;
+        double radius = (h / 2) * _main.CornerFactor;
+        var bt = new Thickness(Math.Min(_main.BorderWidth, 4));
+        double scale = Math.Clamp(_main.UiScale / 1.43, 0.72, 1.0);
+
+        foreach (var p in pills)
+        {
+            p.CornerRadius = new CornerRadius(radius);
+            p.BorderThickness = bt;
+            // Shadow strength
+            double s = _main.ShadowStrength;
+            p.Effect = s <= 0.02 ? null : new System.Windows.Media.Effects.DropShadowEffect
+            {
+                BlurRadius = 14 * Math.Max(0.3, s),
+                ShadowDepth = 4 * Math.Max(0.3, s),
+                Direction = 270,
+                Opacity = 0.35 * Math.Min(1, s),
+                Color = Colors.Black,
+            };
+            // Size hint (grows/shrinks from the left edge so it never overflows)
+            p.RenderTransformOrigin = new Point(0, 0.5);
+            p.RenderTransform = new ScaleTransform(scale, scale);
+        }
+        foreach (var g in glosses)
+            g.Opacity = Math.Clamp(0.55 * _main.Gloss, 0, 1);
+        // Frost: blur the preview art the same way the real pill does.
+        double blur = 4 + _main.Frost * 26;
+        foreach (var img in images)
+            img.Effect = _main.Frost <= 0.02
+                ? null
+                : new System.Windows.Media.Effects.BlurEffect { Radius = blur, RenderingBias = System.Windows.Media.Effects.RenderingBias.Quality };
+        // Track thickness
+        double th = Math.Clamp(7 * _main.TrackScale, 3, 16);
+        foreach (var t in new[] { SysTrackPreview, SpotTrackPreview, LiveTrackPreview })
+        {
+            t.Height = th;
+            t.CornerRadius = new CornerRadius(th / 2);
+        }
     }
 
     /// <summary>Active dock = white pill with dark text; others = subtle dark pill.</summary>
@@ -188,6 +236,7 @@ public partial class SettingsWindow : Window
                 : $"#{picked.A:X2}{picked.R:X2}{picked.G:X2}{picked.B:X2}";
             _main.SetColorHex(key, hex);
             PaintSwatch(key);
+            RefreshPreviews();
         }
     }
 
@@ -197,6 +246,7 @@ public partial class SettingsWindow : Window
         GlassVal.Text = $"{e.NewValue:F0}%";
         if (_loading) return;
         _main.SetGlass(e.NewValue / 100.0);
+        RefreshPreviews();
     }
 
     private void Gloss_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -205,6 +255,7 @@ public partial class SettingsWindow : Window
         GlossVal.Text = $"{e.NewValue:F0}%";
         if (_loading) return;
         _main.SetGloss(e.NewValue / 100.0);
+        RefreshPreviews();
     }
 
     private void Size_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -213,6 +264,7 @@ public partial class SettingsWindow : Window
         SizeVal.Text = $"{e.NewValue:F0}%";
         if (_loading) return;
         _main.ApplyScale(e.NewValue / 100.0);
+        RefreshPreviews();
     }
 
     private void Corner_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -221,6 +273,7 @@ public partial class SettingsWindow : Window
         CornerVal.Text = $"{e.NewValue:F0}%";
         if (_loading) return;
         _main.SetCorner(e.NewValue / 100.0);
+        RefreshPreviews();
     }
 
     private void Track_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -229,6 +282,7 @@ public partial class SettingsWindow : Window
         TrackVal.Text = $"{e.NewValue:F0}%";
         if (_loading) return;
         _main.SetTrackScale(e.NewValue / 100.0);
+        RefreshPreviews();
     }
 
     private void Border_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -237,10 +291,7 @@ public partial class SettingsWindow : Window
         BorderVal.Text = $"{e.NewValue / 10.0:F1}";
         if (_loading) return;
         _main.SetBorderWidth(e.NewValue / 10.0);
-        var bt = new Thickness(Math.Min(_main.BorderWidth, 4));
-        SysPreviewPill.BorderThickness = bt;
-        SpotPreviewPill.BorderThickness = bt;
-        LivePreviewPill.BorderThickness = bt;
+        RefreshPreviews();
     }
 
     private void Shadow_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -249,6 +300,7 @@ public partial class SettingsWindow : Window
         ShadowVal.Text = $"{e.NewValue:F0}%";
         if (_loading) return;
         _main.SetShadow(e.NewValue / 100.0);
+        RefreshPreviews();
     }
 
     private void Glow_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -257,6 +309,7 @@ public partial class SettingsWindow : Window
         GlowVal.Text = $"{e.NewValue:F0}%";
         if (_loading) return;
         _main.SetGlow(e.NewValue / 100.0);
+        RefreshPreviews();
     }
 
     private void Frost_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -265,6 +318,7 @@ public partial class SettingsWindow : Window
         FrostVal.Text = $"{e.NewValue:F0}%";
         if (_loading) return;
         _main.SetFrost(e.NewValue / 100.0);
+        RefreshPreviews();
     }
 
     private void BgPick_Click(object sender, RoutedEventArgs e)
