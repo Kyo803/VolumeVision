@@ -125,17 +125,21 @@
                     <Button Content="Clear" Style="{StaticResource PillButton}" Click="BgClear_Click"/>
                 </StackPanel>
 
-                <!-- Animations only + studio -->
-                <Grid Grid.Row="3" Margin="0,0,0,10">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
+                <!-- Animations only + studio + library -->
+                <StackPanel Grid.Row="3" Margin="0,0,0,10">
                     <CheckBox x:Name="BgOnlyCheck" Content="Animations Only" Style="{StaticResource PillCheck}"
-                              VerticalAlignment="Center" Checked="BgOnly_Toggled" Unchecked="BgOnly_Toggled"/>
-                    <Button Grid.Column="1" Content="Wallpaper Studio" Style="{StaticResource PillButton}"
-                            HorizontalAlignment="Right" Click="Studio_Click"/>
-                </Grid>
+                              HorizontalAlignment="Left" Checked="BgOnly_Toggled" Unchecked="BgOnly_Toggled"/>
+                    <Grid Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Content="GIF Library" Style="{StaticResource PillButton}" Margin="0,0,4,0"
+                                HorizontalAlignment="Stretch" Click="Library_Click"/>
+                        <Button Grid.Column="1" Content="Wallpaper Studio" Style="{StaticResource PillButton}"
+                                Margin="4,0,0,0" HorizontalAlignment="Stretch" Click="Studio_Click"/>
+                    </Grid>
+                </StackPanel>
 
                 <!-- Live preview -->
                 <Border Grid.Row="4" Width="278" Height="56" CornerRadius="28" Margin="0,0,0,6"

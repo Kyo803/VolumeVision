@@ -32,6 +32,7 @@ public sealed class VolumeTray : IDisposable
 
         var show = new WinForms.ToolStripMenuItem("Show pill", null, (_, _) => _main.Dispatcher.Invoke(_main.Summon));
         var settings = new WinForms.ToolStripMenuItem("Settings…", null, (_, _) => _main.Dispatcher.Invoke(_main.OpenSettings));
+        var library = new WinForms.ToolStripMenuItem("GIF Library…", null, (_, _) => _main.Dispatcher.Invoke(_main.OpenLibrary));
         var autostart = new WinForms.ToolStripMenuItem("Start with Windows") { CheckOnClick = true };
         autostart.Click += (_, _) =>
         {
@@ -44,6 +45,7 @@ public sealed class VolumeTray : IDisposable
         var menu = new WinForms.ContextMenuStrip();
         menu.Items.Add(show);
         menu.Items.Add(settings);
+        menu.Items.Add(library);
         menu.Items.Add(new WinForms.ToolStripSeparator());
         menu.Items.Add(autostart);
         menu.Items.Add(uninstall);

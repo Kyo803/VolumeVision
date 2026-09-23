@@ -232,6 +232,8 @@ public partial class MainWindow : Window
     // Wallpaper (filename inside AppDataDir) + animated slider shimmer toggle.
     private string _bgImageFile = "";
     public string BgImageName => string.IsNullOrEmpty(_bgImageFile) ? "None (solid color)" : _bgImageFile;
+    /// <summary>Original file name of the applied art (used to highlight the library).</summary>
+    public string BgSourceName { get; private set; } = "";
     public string WallpaperFilePath => string.IsNullOrEmpty(_bgImageFile) ? "" : System.IO.Path.Combine(AppDataDir, _bgImageFile);
     public bool SliderFx { get; private set; } = true;
     /// <summary>When true (and a wallpaper is set), the solid glass color is
@@ -298,6 +300,7 @@ public partial class MainWindow : Window
             GlowStrength = Math.Clamp(GetDouble(root, "glow", GlowStrength), 0.0, 2.0);
             TrackScale = Math.Clamp(GetDouble(root, "track", TrackScale), 0.4, 2.5);
             _bgImageFile = GetString(root, "bgImage", "");
+            BgSourceName = GetString(root, "bgSource", BgSourceName);
             if (root.TryGetProperty("bgOnly", out var boEl))
                 try { BgOnly = boEl.GetBoolean(); } catch { }
             if (root.TryGetProperty("sliderFx", out var fxEl))
@@ -321,7 +324,7 @@ public partial class MainWindow : Window
             System.IO.File.WriteAllText(SettingsPath,
                 $"{{\"scale\":{_uiScale:F3},\"position\":\"{Position}\",\"glass\":{Glass:F2},\"gloss\":{Gloss:F2}," +
                 $"\"corner\":{CornerFactor:F3},\"border\":{BorderWidth:F2},\"shadow\":{ShadowStrength:F2},\"glow\":{GlowStrength:F2},\"track\":{TrackScale:F2}," +
-                $"\"bgImage\":\"{_bgImageFile}\",\"bgOnly\":{(BgOnly ? "true" : "false")},\"sliderFx\":{(SliderFx ? "true" : "false")},\"colors\":{{{cols}}}}}");
+                $"\"bgImage\":\"{_bgImageFile}\",\"bgSource\":\"{BgSourceName}\",\"bgOnly\":{(BgOnly ? "true" : "false")},\"sliderFx\":{(SliderFx ? "true" : "false")},\"colors\":{{{cols}}}}}");
         }
         catch { }
     }
@@ -468,7 +471,7 @@ public partial class MainWindow : Window
     }
 
     /// <summary>Copies an image into the wallpaper slot and applies it.</summary>
-    public void ImportWallpaperFile(string src, string ext)
+    public void ImportWallpaperFile(string src, string ext, string? sourceLabel = null)
     {
         try
         {
@@ -479,10 +482,11 @@ public partial class MainWindow : Window
                 System.IO.File.Delete(f);
             string dst = System.IO.Path.Combine(AppDataDir, "bg" + ext);
             System.IO.File.Copy(src, dst, overwrite: true);
+            BgSourceName = sourceLabel ?? System.IO.Path.GetFileName(src);
             SetWallpaperFile("bg" + ext);
             // A fresh pick means the user wants to see it.
             SetBgOnly(true);
-            DebugLog.Write("wallpaper set: bg" + ext);
+            DebugLog.Write("wallpaper set: bg" + ext + " from " + BgSourceName);
         }
         catch (Exception ex) { DebugLog.Write("wallpaper FAIL: " + ex.Message); }
     }
@@ -497,6 +501,7 @@ public partial class MainWindow : Window
     public void ClearBackgroundImage()
     {
         _bgImageFile = "";
+        BgSourceName = "";
         try { foreach (var f in System.IO.Directory.GetFiles(AppDataDir, "bg.*")) System.IO.File.Delete(f); }
         catch { }
         HideWallpaper();
@@ -985,9 +990,20 @@ public partial class MainWindow : Window
         PillScale.BeginAnimation(ScaleTransform.ScaleYProperty, back);
     }
 
-    public void OpenSettings()
+    /// <summary>Opens the GIF library window (one pill preview per file).</summary>
+    public void OpenLibrary()
     {
-        // Never let a settings bug take down the pill.
+        try
+        {
+            var lib = new GifLibrary(this) { Owner = (Window?)_settings ?? this };
+            lib.ShowDialog();
+            DebugLog.Write("gif library opened");
+        }
+        catch (Exception ex) { DebugLog.Write("gif library FAIL: " + ex.Message); }
+    }
+
+    public void OpenSettings()
+    {        // Never let a settings bug take down the pill.
         try
         {
             if (_settings == null)

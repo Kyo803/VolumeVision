@@ -288,6 +288,19 @@ public partial class SettingsWindow : Window
         catch (Exception ex) { BgName.Text = "Studio failed: " + ex.Message; }
     }
 
+    private void Library_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var lib = new GifLibrary(_main) { Owner = this };
+            lib.ShowDialog();
+            BgName.Text = _main.BgImageName;
+            BgOnlyCheck.IsChecked = _main.BgOnly;
+            RefreshWallpaperPreview();
+        }
+        catch (Exception ex) { BgName.Text = "Library failed: " + ex.Message; }
+    }
+
     private void Reset_Click(object sender, RoutedEventArgs e)
     {
         _main.ResetAppearance();
