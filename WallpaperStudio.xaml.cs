@@ -23,7 +23,7 @@ public partial class WallpaperStudio : Window
     private readonly MainWindow _main;
     private readonly List<SD.Bitmap> _frames = new();
     private int _frameIndex;
-    private readonly System.Collections.ObjectModel.ObservableCollection<BitmapImage> _thumbs = new();
+    private readonly System.Collections.ObjectModel.ObservableCollection<Controls.TimelineItem> _items = new();
     private readonly List<(int Index, SD.Bitmap Snap)> _undo = new();
     private double _zoom = 1.0; // >= 1 (cover)
     private double _cx;         // crop center in source px
@@ -32,9 +32,14 @@ public partial class WallpaperStudio : Window
     private Point _dragLast;
     private bool _ready;
     private readonly DispatcherTimer _animTimer = new() { Interval = TimeSpan.FromMilliseconds(33) };
+    private readonly DispatcherTimer _playTimer = new() { Interval = TimeSpan.FromMilliseconds(83) };
+    private bool _playing;
     private double _animT;
     private bool _exporting;
     private System.Windows.Media.Color _penColor = Colors.White;
+    private SD.Bitmap? _brushTip;    // raw tip (null = round pen)
+    private SD.Bitmap? _tintedTip;   // tip recolored to pen color
+    private readonly double _brushSpacing = 0.22;
 
     private SD.Bitmap? Current => _frames.Count == 0 ? null : _frames[Math.Clamp(_frameIndex, 0, _frames.Count - 1)];
 
@@ -42,10 +47,20 @@ public partial class WallpaperStudio : Window
     {
         _main = main;
         InitializeComponent();
-        FilmStrip.ItemsSource = _thumbs;
+        Timeline.ItemsSource = _items;
+        Timeline.FrameSelected += Timeline_FrameSelected;
+        Timeline.AddRequested += () => FrameAdd_Click(this, new RoutedEventArgs());
+        Timeline.DuplicateRequested += () => FrameDupe_Click(this, new RoutedEventArgs());
+        Timeline.DeleteRequested += () => FrameDel_Click(this, new RoutedEventArgs());
+        Timeline.UndoRequested += () => Undo_Click(this, new RoutedEventArgs());
+        Timeline.PlayToggled += TogglePlay;
+        Timeline.StopRequested += StopPlay;
+        Timeline.StepBy += StepBy;
         PenColorBtn.Background = new SolidColorBrush(_penColor);
         _animTimer.Tick += (_, _) => AnimTick();
+        _playTimer.Tick += (_, _) => PlayTick();
         _ready = true;
+        LoadBrushes();
         UpdateFrameInfo();
 
         // Smooth entrance: fade + subtle scale-up.
@@ -85,19 +100,65 @@ public partial class WallpaperStudio : Window
 
     private void RebuildThumbs()
     {
-        _thumbs.Clear();
-        foreach (var f in _frames)
+        _items.Clear();
+        for (int i = 0; i < _frames.Count; i++)
         {
+            var f = _frames[i];
             using var t = RenderFrame(f, 120, 28, 1.0, f.Width / 2.0, f.Height / 2.0, ReadAdjust());
-            _thumbs.Add(t == null ? BlankThumb() : ToBitmapImage(t));
+            _items.Add(new Controls.TimelineItem
+            {
+                Index = i,
+                Tick = i % 5 == 0 ? i.ToString() : "",
+                Thumb = t == null ? BlankThumb() : ToBitmapImage(t),
+            });
         }
-        FilmStrip.SelectedIndex = _frames.Count == 0 ? -1 : Math.Clamp(_frameIndex, 0, _frames.Count - 1);
+        Timeline.SelectedIndex = _frames.Count == 0 ? -1 : Math.Clamp(_frameIndex, 0, _frames.Count - 1);
+        UpdateFrameInfo();
     }
 
     private static BitmapImage BlankThumb()
     {
         using var b = new SD.Bitmap(120, 28, SDI.PixelFormat.Format24bppRgb);
         return ToBitmapImage(b);
+    }
+
+    // ---------- Timeline playback ----------
+
+    private void TogglePlay()
+    {
+        if (_frames.Count < 2) return;
+        _playing = !_playing;
+        Timeline.SetPlaying(_playing);
+        if (_playing) _playTimer.Start(); else _playTimer.Stop();
+    }
+
+    private void StopPlay()
+    {
+        _playing = false;
+        Timeline.SetPlaying(false);
+        _playTimer.Stop();
+        _frameIndex = 0;
+        Timeline.SelectedIndex = _frames.Count > 0 ? 0 : -1;
+        RenderView();
+    }
+
+    private void PlayTick()
+    {
+        if (_frames.Count == 0) return;
+        _frameIndex = (_frameIndex + 1) % _frames.Count;
+        Timeline.SelectedIndex = _frameIndex;
+        RenderView();
+    }
+
+    private void StepBy(int delta)
+    {
+        if (_frames.Count == 0) return;
+        int idx = delta == int.MinValue ? 0
+            : delta == int.MaxValue ? _frames.Count - 1
+            : _frameIndex + delta;
+        _frameIndex = Math.Clamp(idx, 0, _frames.Count - 1);
+        Timeline.SelectedIndex = _frameIndex;
+        RenderView();
     }
 
     // ---------- Source ----------
@@ -227,6 +288,13 @@ public partial class WallpaperStudio : Window
         var c = _penColor;
         using var g = SD.Graphics.FromImage(cur);
         g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+
+        if (_brushTip != null)
+        {
+            StampStroke(g, a, b, w);
+            return;
+        }
+
         using var pen = new SD.Pen(SD.Color.FromArgb(c.A, c.R, c.G, c.B), Math.Max(1, w))
         {
             StartCap = System.Drawing.Drawing2D.LineCap.Round,
@@ -238,6 +306,84 @@ public partial class WallpaperStudio : Window
             g.FillEllipse(pen.Brush, (float)(a.X - w / 2), (float)(a.Y - w / 2), w, w);
         else
             g.DrawLine(pen, (float)a.X, (float)a.Y, (float)b.X, (float)b.Y);
+    }
+
+    // ---------- Brush stamps ----------
+
+    /// <summary>Stamps the tinted brush tip along the stroke at even spacing.</summary>
+    private void StampStroke(SD.Graphics g, Point a, Point b, float size)
+    {
+        var tip = _tintedTip;
+        if (tip == null) return;
+        double dx = b.X - a.X, dy = b.Y - a.Y;
+        double dist = Math.Sqrt(dx * dx + dy * dy);
+        double step = Math.Max(1.0, size * _brushSpacing);
+        int count = Math.Max(1, (int)Math.Ceiling(dist / step));
+        for (int i = 0; i <= count; i++)
+        {
+            double t = count == 0 ? 0 : (double)i / count;
+            float x = (float)(a.X + dx * t);
+            float y = (float)(a.Y + dy * t);
+            var dst = new SD.RectangleF(x - size / 2, y - size / 2, size, size);
+            g.DrawImage(tip, dst);
+        }
+    }
+
+    /// <summary>Rebuild the tinted tip whenever brush/color/opacity changes.</summary>
+    private void RebuildTintedTip()
+    {
+        _tintedTip?.Dispose();
+        _tintedTip = null;
+        if (_brushTip == null) return;
+        var c = _penColor;
+        var bmp = new SD.Bitmap(_brushTip.Width, _brushTip.Height, SDI.PixelFormat.Format32bppArgb);
+        for (int y = 0; y < _brushTip.Height; y++)
+            for (int x = 0; x < _brushTip.Width; x++)
+            {
+                var p = _brushTip.GetPixel(x, y);
+                // Use the tip's coverage (max channel) as alpha, recolor to pen color.
+                int cover = Math.Max(p.R, Math.Max(p.G, p.B));
+                byte a = (byte)(cover * p.A / 255 * c.A / 255);
+                bmp.SetPixel(x, y, SD.Color.FromArgb(a, c.R, c.G, c.B));
+            }
+        _tintedTip = bmp;
+    }
+
+    private string BrushesDir => System.IO.Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VolumeOSD", "brushes");
+
+    private void LoadBrushes()
+    {
+        try
+        {
+            System.IO.Directory.CreateDirectory(BrushesDir);
+            BrushCombo.Items.Clear();
+            BrushCombo.Items.Add(new ComboBoxItem { Content = "Round pen" });
+            foreach (var f in System.IO.Directory.GetFiles(BrushesDir, "*.png"))
+                BrushCombo.Items.Add(new ComboBoxItem { Content = System.IO.Path.GetFileNameWithoutExtension(f), Tag = f });
+            BrushCombo.SelectedIndex = 0;
+        }
+        catch { }
+    }
+
+    private void Brush_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_ready) return;
+        var item = BrushCombo.SelectedItem as ComboBoxItem;
+        string? path = item?.Tag as string;
+        _brushTip?.Dispose();
+        _brushTip = null;
+        if (!string.IsNullOrEmpty(path) && System.IO.File.Exists(path))
+        {
+            try { _brushTip = new SD.Bitmap(path); } catch { _brushTip = null; }
+        }
+        RebuildTintedTip();
+    }
+
+    private void ReloadBrushes_Click(object sender, RoutedEventArgs e)
+    {
+        LoadBrushes();
+        StatusText.Text = $"Brushes reloaded from {BrushesDir}";
     }
 
     // ---------- Controls ----------
@@ -280,7 +426,13 @@ public partial class WallpaperStudio : Window
 
     private void UpdateFrameInfo()
     {
-        if (_frames.Count == 0) { FrameInfo.Text = "No image loaded"; return; }
+        if (_frames.Count == 0)
+        {
+            FrameInfo.Text = "No image loaded";
+            Timeline.SetFrameLabel("0 / 0");
+            Timeline.SetInfo("No frames");
+            return;
+        }
         string f = _frames.Count == 1 ? "1 frame" : $"{_frames.Count} frames";
         if (KbCombo.SelectedIndex <= 0)
             FrameInfo.Text = _frames.Count > 1
@@ -291,23 +443,32 @@ public partial class WallpaperStudio : Window
             int n = Math.Max(2, (int)Math.Round(Fps() * Duration()));
             FrameInfo.Text = $"{f} · Ken Burns {n} frames · {Duration():F0}s @ {Fps()}fps";
         }
+        Timeline.SetFrameLabel($"{_frameIndex + 1} / {_frames.Count}");
+        Timeline.SetInfo($"{f} · {Fps()} fps · click a frame to edit");
     }
 
     // ---------- Frames ----------
 
-    private void Film_Select(object sender, SelectionChangedEventArgs e)
+    private void Timeline_FrameSelected(int index)
     {
-        if (!_ready || FilmStrip.SelectedIndex < 0 || FilmStrip.SelectedIndex >= _frames.Count) return;
-        _frameIndex = FilmStrip.SelectedIndex;
+        if (!_ready || index < 0 || index >= _frames.Count) return;
+        _frameIndex = index;
+        Timeline.SetFrameLabel($"{_frameIndex + 1} / {_frames.Count}");
         RenderView();
     }
 
     private void RebuildThumb(int index)
     {
-        if (index < 0 || index >= _frames.Count || index >= _thumbs.Count) return;
+        if (index < 0 || index >= _frames.Count || index >= _items.Count) return;
         using var t = RenderFrame(_frames[index], 120, 28, 1.0,
             _frames[index].Width / 2.0, _frames[index].Height / 2.0, ReadAdjust());
-        _thumbs[index] = t == null ? BlankThumb() : ToBitmapImage(t);
+        var old = _items[index];
+        _items[index] = new Controls.TimelineItem
+        {
+            Index = index,
+            Tick = old.Tick,
+            Thumb = t == null ? BlankThumb() : ToBitmapImage(t),
+        };
     }
 
     private void FrameAdd_Click(object sender, RoutedEventArgs e)
@@ -400,6 +561,7 @@ public partial class WallpaperStudio : Window
         {
             _penColor = Color.FromRgb(dlg.SelectedColor.R, dlg.SelectedColor.G, dlg.SelectedColor.B);
             PenColorBtn.Background = new SolidColorBrush(_penColor);
+            RebuildTintedTip();
         }
     }
 

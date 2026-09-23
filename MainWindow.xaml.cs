@@ -252,6 +252,12 @@ public partial class MainWindow : Window
     public double UiScale => _uiScale;
     public double Glass { get; private set; } = 0.73; // pill background opacity
     public double Gloss { get; private set; } = 1.0;  // specular highlight multiplier
+    // Deep customization
+    public double CornerFactor { get; private set; } = 1.0;  // 1 = fully rounded pill
+    public double BorderWidth { get; private set; } = 1.0;   // px
+    public double ShadowStrength { get; private set; } = 1.0;
+    public double GlowStrength { get; private set; } = 1.0;
+    public double TrackScale { get; private set; } = 1.0;
 
     private readonly Dictionary<string, string> _colors = new()
     {
@@ -286,6 +292,11 @@ public partial class MainWindow : Window
             if (pos is "Top" or "Bottom" or "Left" or "Right") Position = pos;
             Glass = Math.Clamp(GetDouble(root, "glass", Glass), 0.4, 1.0);
             Gloss = Math.Clamp(GetDouble(root, "gloss", Gloss), 0.0, 1.5);
+            CornerFactor = Math.Clamp(GetDouble(root, "corner", CornerFactor), 0.15, 1.0);
+            BorderWidth = Math.Clamp(GetDouble(root, "border", BorderWidth), 0.0, 5.0);
+            ShadowStrength = Math.Clamp(GetDouble(root, "shadow", ShadowStrength), 0.0, 2.0);
+            GlowStrength = Math.Clamp(GetDouble(root, "glow", GlowStrength), 0.0, 2.0);
+            TrackScale = Math.Clamp(GetDouble(root, "track", TrackScale), 0.4, 2.5);
             _bgImageFile = GetString(root, "bgImage", "");
             if (root.TryGetProperty("bgOnly", out var boEl))
                 try { BgOnly = boEl.GetBoolean(); } catch { }
@@ -309,6 +320,7 @@ public partial class MainWindow : Window
             var cols = string.Join(",", _colors.Select(kv => $"\"{kv.Key}\":\"{kv.Value}\""));
             System.IO.File.WriteAllText(SettingsPath,
                 $"{{\"scale\":{_uiScale:F3},\"position\":\"{Position}\",\"glass\":{Glass:F2},\"gloss\":{Gloss:F2}," +
+                $"\"corner\":{CornerFactor:F3},\"border\":{BorderWidth:F2},\"shadow\":{ShadowStrength:F2},\"glow\":{GlowStrength:F2},\"track\":{TrackScale:F2}," +
                 $"\"bgImage\":\"{_bgImageFile}\",\"bgOnly\":{(BgOnly ? "true" : "false")},\"sliderFx\":{(SliderFx ? "true" : "false")},\"colors\":{{{cols}}}}}");
         }
         catch { }
@@ -391,6 +403,42 @@ public partial class MainWindow : Window
             SaveSettings();
         }
         catch (Exception ex) { DebugLog.Write("SetGloss FAIL: " + ex.Message); }
+    }
+
+    // ---------- Deep customization setters ----------
+
+    public void SetCorner(double factor)
+    {
+        CornerFactor = Math.Clamp(factor, 0.15, 1.0);
+        ApplyLayout();
+        SaveSettings();
+    }
+
+    public void SetBorderWidth(double px)
+    {
+        BorderWidth = Math.Clamp(px, 0.0, 5.0);
+        ApplyLayout();
+        SaveSettings();
+    }
+
+    public void SetShadow(double v)
+    {
+        ShadowStrength = Math.Clamp(v, 0.0, 2.0);
+        ApplyLayout();
+        SaveSettings();
+    }
+
+    public void SetGlow(double v)
+    {
+        GlowStrength = Math.Clamp(v, 0.0, 2.0);
+        SaveSettings();
+    }
+
+    public void SetTrackScale(double v)
+    {
+        TrackScale = Math.Clamp(v, 0.4, 2.5);
+        ApplyLayout();
+        SaveSettings();
     }
 
     public void ResetAppearance()
@@ -613,29 +661,51 @@ public partial class MainWindow : Window
     private bool IsVertical => Position == "Left" || Position == "Right";
 
     private void ApplyLayout()
-    {
-        // Shell swaps to vertical on side docks; content Viewbox rotates 90 deg.
+    {        // Shell swaps to vertical on side docks; content Viewbox rotates 90 deg.
         double w = FigmaW * _uiScale, h = FigmaH * _uiScale;
         bool vert = IsVertical;
+        double radius = (h / 2) * CornerFactor;
         Pill.Width = vert ? h : w;
         Pill.Height = vert ? w : h;
-        Pill.CornerRadius = new CornerRadius(h / 2);
-        GlossOverlay.CornerRadius = new CornerRadius(h / 2);
-        BgClip.CornerRadius = new CornerRadius(h / 2);
-        GlassTint.CornerRadius = new CornerRadius(h / 2);
+        Pill.CornerRadius = new CornerRadius(radius);
+        Pill.BorderThickness = new Thickness(BorderWidth);
+        GlossOverlay.CornerRadius = new CornerRadius(radius);
+        BgClip.CornerRadius = new CornerRadius(radius);
+        GlassTint.CornerRadius = new CornerRadius(radius);
+        GlowLayer.CornerRadius = new CornerRadius(radius);
+        // Shadow strength
+        if (Pill.Effect is System.Windows.Media.Effects.DropShadowEffect sh)
+        {
+            sh.Opacity = 0.34 * ShadowStrength;
+            sh.BlurRadius = 26 * Math.Max(0.2, ShadowStrength);
+            sh.ShadowDepth = 10 * Math.Max(0.2, ShadowStrength);
+        }
         // Border doesn't clip its child to rounded corners — clip the wallpaper
-        // manually, inset by the 1px ring so bright art can never fringe past it.
+        // manually, inset by the border width so bright art can never fringe past it.
         double cw = vert ? h : w, ch = vert ? w : h;
-        const double bt = 1.0;
+        double bt = BorderWidth;
         BgClip.Clip = new RectangleGeometry(
             new Rect(bt, bt, Math.Max(1, cw - 2 * bt), Math.Max(1, ch - 2 * bt)),
-            Math.Max(1, h / 2 - bt), Math.Max(1, h / 2 - bt));
+            Math.Max(1, radius - bt), Math.Max(1, radius - bt));
         OsdViewBox.Width = w;
         OsdViewBox.Height = h;
-        BgClip.CornerRadius = new CornerRadius(h / 2);
-        GlassTint.CornerRadius = new CornerRadius(h / 2);
+        ApplyTrackScale();
         double angle = Position == "Left" ? -90 : Position == "Right" ? 90 : 0;
         OsdViewBox.LayoutTransform = angle == 0 ? Transform.Identity : new RotateTransform(angle);
+        // Wallpaper follows the dock: on side docks the (landscape) art is
+        // rotated to fill the portrait pill, so the GIF keeps playing correctly.
+        if (vert)
+        {
+            BgImage.Width = ch;   // landscape width
+            BgImage.Height = cw;  // landscape height
+            BgImage.RenderTransform = new RotateTransform(angle);
+        }
+        else
+        {
+            BgImage.Width = double.NaN;
+            BgImage.Height = double.NaN;
+            BgImage.RenderTransform = Transform.Identity;
+        }
         // Counter-rotate the speaker glyphs so they stay upright on side docks.
         // (Chevrons intentionally rotate into ^/v: up=prev, down=next.)
         System.Windows.Media.Transform speakerT =
@@ -695,6 +765,28 @@ public partial class MainWindow : Window
     }
 
     // ---------- OSD show / hide ----------
+
+    /// <summary>Scales the volume/seek tracks about the design-space centre.</summary>
+    private void ApplyTrackScale()
+    {
+        const double designH = 24, centerY = 96;
+        double dh = designH * TrackScale;
+        double top = centerY - dh / 2;
+        double r = dh / 2;
+        foreach (var t in new[] { SysTrack, SpotTrack })
+        {
+            t.Height = dh;
+            t.CornerRadius = new CornerRadius(r);
+            System.Windows.Controls.Canvas.SetTop(t, top);
+        }
+        foreach (var f in new[] { SysFill, SpotFill })
+        {
+            f.Height = dh;
+            f.CornerRadius = new CornerRadius(r);
+        }
+        SysShimmer.CornerRadius = new CornerRadius(r);
+        SpotShimmer.CornerRadius = new CornerRadius(r);
+    }
 
     private void PositionOsd()
     {
@@ -859,7 +951,7 @@ public partial class MainWindow : Window
         var origin = new Point(pos.X / Pill.ActualWidth, pos.Y / Pill.ActualHeight);
         brush.GradientOrigin = origin;
         brush.Center = origin;
-        GlowLayer.Opacity = 0.9;
+        GlowLayer.Opacity = 0.9 * GlowStrength;
     }
 
     private void RestartHideAfterPointer()

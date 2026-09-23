@@ -67,6 +67,11 @@ public partial class SettingsWindow : Window
         GlassSlider.Value = _main.Glass * 100;
         GlossSlider.Value = _main.Gloss * 100;
         SizeSlider.Value = _main.UiScale * 100;
+        CornerSlider.Value = _main.CornerFactor * 100;
+        TrackSlider.Value = _main.TrackScale * 100;
+        BorderSlider.Value = _main.BorderWidth * 10;
+        ShadowSlider.Value = _main.ShadowStrength * 100;
+        GlowSlider.Value = _main.GlowStrength * 100;
         BgOnlyCheck.IsChecked = _main.BgOnly;
         BgName.Text = _main.BgImageName;
         UpdateDockButtons();
@@ -192,6 +197,46 @@ public partial class SettingsWindow : Window
         SizeVal.Text = $"{e.NewValue:F0}%";
         if (_loading) return;
         _main.ApplyScale(e.NewValue / 100.0);
+    }
+
+    private void Corner_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (CornerVal == null) return;
+        CornerVal.Text = $"{e.NewValue:F0}%";
+        if (_loading) return;
+        _main.SetCorner(e.NewValue / 100.0);
+    }
+
+    private void Track_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (TrackVal == null) return;
+        TrackVal.Text = $"{e.NewValue:F0}%";
+        if (_loading) return;
+        _main.SetTrackScale(e.NewValue / 100.0);
+    }
+
+    private void Border_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (BorderVal == null) return;
+        BorderVal.Text = $"{e.NewValue / 10.0:F1}";
+        if (_loading) return;
+        _main.SetBorderWidth(e.NewValue / 10.0);
+    }
+
+    private void Shadow_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (ShadowVal == null) return;
+        ShadowVal.Text = $"{e.NewValue:F0}%";
+        if (_loading) return;
+        _main.SetShadow(e.NewValue / 100.0);
+    }
+
+    private void Glow_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (GlowVal == null) return;
+        GlowVal.Text = $"{e.NewValue:F0}%";
+        if (_loading) return;
+        _main.SetGlow(e.NewValue / 100.0);
     }
 
     private void BgPick_Click(object sender, RoutedEventArgs e)

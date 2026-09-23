@@ -31,8 +31,10 @@
             </Border.Effect>
             <Grid>
                 <!-- Custom wallpaper (image or animated GIF), glass tint goes above it -->
-                <Border x:Name="BgClip" CornerRadius="33" Visibility="Collapsed">
-                    <Image x:Name="BgImage" Stretch="UniformToFill"/>
+                <Border x:Name="BgClip" CornerRadius="33" Visibility="Collapsed" ClipToBounds="True">
+                    <Image x:Name="BgImage" Stretch="UniformToFill"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           RenderTransformOrigin="0.5,0.5"/>
                 </Border>
                 <Border x:Name="GlassTint" CornerRadius="33" Visibility="Collapsed"
                         Background="{DynamicResource PillBgBrush}"/>
