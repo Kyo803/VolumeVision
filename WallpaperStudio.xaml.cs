@@ -345,21 +345,36 @@ public partial class WallpaperStudio : Window
         }
     }
 
-    /// <summary>Rebuild the tinted tip whenever brush/color/opacity changes.</summary>
+    /// <summary>Rebuild the tinted tip whenever brush/color/opacity changes.
+    /// Handles both white-on-transparent and black-on-white (opaque) tips by
+    /// auto-detecting the background from the corners.</summary>
     private void RebuildTintedTip()
     {
         _tintedTip?.Dispose();
         _tintedTip = null;
         if (_brushTip == null) return;
         var c = _penColor;
-        var bmp = new SD.Bitmap(_brushTip.Width, _brushTip.Height, SDI.PixelFormat.Format32bppArgb);
-        for (int y = 0; y < _brushTip.Height; y++)
-            for (int x = 0; x < _brushTip.Width; x++)
+        var src = _brushTip;
+        int w = src.Width, h = src.Height;
+
+        // Background = average luminance of the four corners.
+        int CornLum(int x, int y)
+        {
+            var p = src.GetPixel(x, y);
+            return (int)(0.299 * p.R + 0.587 * p.G + 0.114 * p.B);
+        }
+        int bg = (CornLum(0, 0) + CornLum(w - 1, 0) + CornLum(0, h - 1) + CornLum(w - 1, h - 1)) / 4;
+        bool darkOnLight = bg > 128;
+
+        var bmp = new SD.Bitmap(w, h, SDI.PixelFormat.Format32bppArgb);
+        for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++)
             {
-                var p = _brushTip.GetPixel(x, y);
-                // Use the tip's coverage (max channel) as alpha, recolor to pen color.
-                int cover = Math.Max(p.R, Math.Max(p.G, p.B));
-                byte a = (byte)(cover * p.A / 255 * c.A / 255);
+                var p = src.GetPixel(x, y);
+                int lum = (int)(0.299 * p.R + 0.587 * p.G + 0.114 * p.B);
+                int cover = darkOnLight ? 255 - lum : lum;
+                if (p.A < 255) cover = cover * p.A / 255; // premultiply existing alpha
+                byte a = (byte)(cover * c.A / 255);
                 bmp.SetPixel(x, y, SD.Color.FromArgb(a, c.R, c.G, c.B));
             }
         _tintedTip = bmp;
@@ -434,6 +449,9 @@ public partial class WallpaperStudio : Window
         BrightVal.Text = $"{BrightSlider.Value:F0}";
         ContrastVal.Text = $"{ContrastSlider.Value:F0}%";
         SatVal.Text = $"{SatSlider.Value:F0}%";
+        HueVal.Text = $"{HueSlider.Value:F0}°";
+        WarmthVal.Text = $"{WarmthSlider.Value:F0}";
+        TintVal.Text = $"{TintSlider.Value:F0}";
         _zoom = Math.Clamp(ZoomSlider.Value / 100.0, 1.0, 4.0);
         RenderView();
     }
@@ -677,6 +695,37 @@ public partial class WallpaperStudio : Window
         return r;
     }
 
+    /// <summary>Hue rotation (degrees).</summary>
+    private static float[][] HueMatrix(double deg)
+    {
+        double r = deg * Math.PI / 180.0;
+        float c = (float)Math.Cos(r), s = (float)Math.Sin(r);
+        return new[]
+        {
+            new[] { 0.213f + c * 0.787f - s * 0.213f, 0.715f - c * 0.715f - s * 0.715f, 0.072f - c * 0.072f + s * 0.928f, 0f, 0f },
+            new[] { 0.213f - c * 0.213f + s * 0.143f, 0.715f + c * 0.285f + s * 0.140f, 0.072f - c * 0.072f - s * 0.283f, 0f, 0f },
+            new[] { 0.213f - c * 0.213f - s * 0.787f, 0.715f - c * 0.715f + s * 0.715f, 0.072f + c * 0.928f + s * 0.072f, 0f, 0f },
+            new[] { 0f, 0f, 0f, 1f, 0f },
+            new[] { 0f, 0f, 0f, 0f, 1f },
+        };
+    }
+
+    /// <summary>Colour balance: warmth (blue↔orange) and tint (magenta↔green).</summary>
+    private static float[][] BalanceMatrix(float warmth, float tint)
+    {
+        float rG = 1f + warmth * 0.45f;
+        float bG = 1f - warmth * 0.45f;
+        float gG = 1f + tint * 0.45f;
+        return new[]
+        {
+            new[] { rG, 0f, 0f, 0f, 0f },
+            new[] { 0f, gG, 0f, 0f, 0f },
+            new[] { 0f, 0f, bG, 0f, 0f },
+            new[] { 0f, 0f, 0f, 1f, 0f },
+            new[] { 0f, 0f, 0f, 0f, 1f },
+        };
+    }
+
     private float[][] AdjustMatrix(AdjustState a)
     {
         float bright = a.Bright, contrast = a.Contrast, sat = a.Gray ? 0 : a.Sat;
@@ -696,16 +745,21 @@ public partial class WallpaperStudio : Window
             new float[] { 0, 0, 0, 1, 0 },
             new float[] { co + bright, co + bright, co + bright, 0, 1 },
         };
-        return Mul5(s, c);
+        // hue → saturation → colour balance → brightness/contrast
+        return Mul5(Mul5(Mul5(HueMatrix(a.Hue), s), BalanceMatrix(a.Warmth, a.Tint)), c);
     }
 
-    private record AdjustState(float Bright, float Contrast, float Sat, bool Gray);
+    private record AdjustState(float Bright, float Contrast, float Sat, bool Gray,
+        double Hue = 0, float Warmth = 0, float Tint = 0);
 
     private AdjustState ReadAdjust() => new(
         (float)(BrightSlider.Value / 100.0),
         (float)(ContrastSlider.Value / 100.0),
         (float)(SatSlider.Value / 100.0),
-        GrayCheck.IsChecked == true);
+        GrayCheck.IsChecked == true,
+        HueSlider.Value,
+        (float)(WarmthSlider.Value / 100.0),
+        (float)(TintSlider.Value / 100.0));
 
     private SD.Bitmap? RenderFrame(SD.Bitmap src, int outW, int outH, double zoom, double cx, double cy, AdjustState adj)
     {
@@ -820,6 +874,23 @@ public partial class WallpaperStudio : Window
     }
 
     private async void Gif_Click(object sender, RoutedEventArgs e)
+        => await ExportGifAsync(applyToPill: true, destPath: null);
+
+    private async void SaveGifAs_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.SaveFileDialog
+        {
+            Filter = "GIF animation|*.gif",
+            Title = "Save animation as GIF",
+            FileName = "v2-wallpaper.gif",
+        };
+        if (dlg.ShowDialog() != true) return;
+        await ExportGifAsync(applyToPill: false, destPath: dlg.FileName);
+    }
+
+    /// <summary>Renders the animation (timeline or Ken Burns) and either applies
+    /// it to the pill or saves it to <paramref name="destPath"/>.</summary>
+    private async Task ExportGifAsync(bool applyToPill, string? destPath)
     {
         var cur = Current;
         if (cur == null || _exporting) return;
@@ -849,7 +920,7 @@ public partial class WallpaperStudio : Window
                 {
                     foreach (var f in _frames) srcs.Add((SD.Bitmap)f.Clone());
                 }
-                string tmp = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "volwall.gif");
+                string outPath = destPath ?? System.IO.Path.Combine(System.IO.Path.GetTempPath(), "volwall.gif");
                 await Task.Run(() =>
                 {
                     var frames = new List<SD.Bitmap>(n);
@@ -881,17 +952,22 @@ public partial class WallpaperStudio : Window
                             if (done % 6 == 0 || done == n)
                                 Dispatcher.Invoke(() => StatusText.Text = $"Rendering {done}/{n}…");
                         }
-                        frames.SaveAsAnimatedGif(tmp, TimeSpan.FromMilliseconds(1000.0 / fps), null, null);
+                        frames.SaveAsAnimatedGif(outPath, TimeSpan.FromMilliseconds(1000.0 / fps), null, null);
+                        int count = frames.Count;
                         Dispatcher.Invoke(() =>
                         {
-                            _main.ImportWallpaperFile(tmp, ".gif");
-                            StatusText.Text = $"GIF applied ({frames.Count} frames).";
+                            if (applyToPill)
+                            {
+                                _main.ImportWallpaperFile(outPath, ".gif");
+                                StatusText.Text = $"GIF applied ({count} frames).";
+                            }
+                            else StatusText.Text = $"Saved {count} frames → {outPath}";
                         });
                     }
                     finally
                     {
                         foreach (var f in frames) f.Dispose();
-                        try { System.IO.File.Delete(tmp); } catch { }
+                        if (applyToPill) { try { System.IO.File.Delete(outPath); } catch { } }
                     }
                 });
             }

@@ -142,6 +142,9 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                             <TextBlock Text="Bright" Foreground="#DCDCE2" FontSize="12" VerticalAlignment="Center"/>
                             <Slider x:Name="BrightSlider" Grid.Column="1" Style="{StaticResource PillSlider}"
@@ -164,7 +167,28 @@
                             <TextBlock x:Name="SatVal" Grid.Row="2" Grid.Column="2" Text="100%" Foreground="#7A7A85" FontSize="12"
                                        TextAlignment="Right" VerticalAlignment="Center"/>
 
-                            <CheckBox x:Name="GrayCheck" Grid.Row="3" Grid.ColumnSpan="3" Content="Black &amp; white"
+                            <TextBlock Grid.Row="3" Text="Hue" Foreground="#DCDCE2" FontSize="12" VerticalAlignment="Center"/>
+                            <Slider x:Name="HueSlider" Grid.Row="3" Grid.Column="1" Style="{StaticResource PillSlider}"
+                                    Minimum="-180" Maximum="180" Value="0" VerticalAlignment="Center" Margin="0,0,10,0"
+                                    ValueChanged="Adjust_Changed"/>
+                            <TextBlock x:Name="HueVal" Grid.Row="3" Grid.Column="2" Text="0°" Foreground="#7A7A85" FontSize="12"
+                                       TextAlignment="Right" VerticalAlignment="Center"/>
+
+                            <TextBlock Grid.Row="4" Text="Warmth" Foreground="#DCDCE2" FontSize="12" VerticalAlignment="Center"/>
+                            <Slider x:Name="WarmthSlider" Grid.Row="4" Grid.Column="1" Style="{StaticResource PillSlider}"
+                                    Minimum="-100" Maximum="100" Value="0" VerticalAlignment="Center" Margin="0,0,10,0"
+                                    ValueChanged="Adjust_Changed"/>
+                            <TextBlock x:Name="WarmthVal" Grid.Row="4" Grid.Column="2" Text="0" Foreground="#7A7A85" FontSize="12"
+                                       TextAlignment="Right" VerticalAlignment="Center"/>
+
+                            <TextBlock Grid.Row="5" Text="Tint" Foreground="#DCDCE2" FontSize="12" VerticalAlignment="Center"/>
+                            <Slider x:Name="TintSlider" Grid.Row="5" Grid.Column="1" Style="{StaticResource PillSlider}"
+                                    Minimum="-100" Maximum="100" Value="0" VerticalAlignment="Center" Margin="0,0,10,0"
+                                    ValueChanged="Adjust_Changed"/>
+                            <TextBlock x:Name="TintVal" Grid.Row="5" Grid.Column="2" Text="0" Foreground="#7A7A85" FontSize="12"
+                                       TextAlignment="Right" VerticalAlignment="Center"/>
+
+                            <CheckBox x:Name="GrayCheck" Grid.Row="6" Grid.ColumnSpan="3" Content="Black &amp; white"
                                       Style="{StaticResource PillCheck}" Margin="0,8,0,0"
                                       Checked="Adjust_Toggled" Unchecked="Adjust_Toggled"/>
                         </Grid>
@@ -224,7 +248,8 @@
                     <Button Content="Open…" Style="{StaticResource PillButton}" Margin="0,0,8,0" Click="Open_Click"/>
                     <Button Content="Add GIF…" Style="{StaticResource PillButton}" Margin="0,0,8,0" Click="ImportGif_Click"/>
                     <Button Content="Save PNG" Style="{StaticResource PillButton}" Margin="0,0,8,0" Click="Png_Click"/>
-                    <Button Content="Export GIF" Style="{StaticResource PillButton}" Click="Gif_Click"/>
+                    <Button Content="Save GIF as…" Style="{StaticResource PillButton}" Margin="0,0,8,0" Click="SaveGifAs_Click"/>
+                    <Button Content="Apply to pill" Style="{StaticResource PillButton}" Click="Gif_Click"/>
                 </StackPanel>
             </Grid>
         </Grid>
