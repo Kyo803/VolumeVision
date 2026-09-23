@@ -74,6 +74,11 @@ public partial class SettingsWindow : Window
         GlowSlider.Value = _main.GlowStrength * 100;
         BgOnlyCheck.IsChecked = _main.BgOnly;
         BgName.Text = _main.BgImageName;
+        // Previews mirror the real pill's border so what you see is what you get.
+        var bt = new Thickness(Math.Min(_main.BorderWidth, 4));
+        SysPreviewPill.BorderThickness = bt;
+        SpotPreviewPill.BorderThickness = bt;
+        LivePreviewPill.BorderThickness = bt;
         UpdateDockButtons();
         RefreshPreviewPills();
         RefreshWallpaperPreview();
@@ -221,6 +226,10 @@ public partial class SettingsWindow : Window
         BorderVal.Text = $"{e.NewValue / 10.0:F1}";
         if (_loading) return;
         _main.SetBorderWidth(e.NewValue / 10.0);
+        var bt = new Thickness(Math.Min(_main.BorderWidth, 4));
+        SysPreviewPill.BorderThickness = bt;
+        SpotPreviewPill.BorderThickness = bt;
+        LivePreviewPill.BorderThickness = bt;
     }
 
     private void Shadow_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)

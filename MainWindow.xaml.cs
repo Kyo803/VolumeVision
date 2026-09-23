@@ -685,13 +685,15 @@ public partial class MainWindow : Window
             sh.BlurRadius = 26 * Math.Max(0.2, ShadowStrength);
             sh.ShadowDepth = 10 * Math.Max(0.2, ShadowStrength);
         }
-        // Border doesn't clip its child to rounded corners — clip the wallpaper
-        // manually, inset by the border width so bright art can never fringe past it.
-        double cw = vert ? h : w, ch = vert ? w : h;
+        // BgClip already lives inside the Pill's border box, so its size is the
+        // pill minus the border on every side. Clip it to its OWN bounds (no
+        // extra inset — that double-inset the art and left a gap at big borders).
+        double pillW = vert ? h : w, pillH = vert ? w : h;
         double bt = BorderWidth;
-        BgClip.Clip = new RectangleGeometry(
-            new Rect(bt, bt, Math.Max(1, cw - 2 * bt), Math.Max(1, ch - 2 * bt)),
-            Math.Max(1, radius - bt), Math.Max(1, radius - bt));
+        double cw = Math.Max(1, pillW - 2 * bt);
+        double ch = Math.Max(1, pillH - 2 * bt);
+        double clipR = Math.Max(0, radius - bt);
+        BgClip.Clip = new RectangleGeometry(new Rect(0, 0, cw, ch), clipR, clipR);
         OsdViewBox.Width = w;
         OsdViewBox.Height = h;
         ApplyTrackScale();

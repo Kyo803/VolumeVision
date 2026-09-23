@@ -126,10 +126,20 @@ public partial class WallpaperStudio : Window
 
     private void TogglePlay()
     {
-        if (_frames.Count < 2) return;
+        if (_frames.Count < 2)
+        {
+            StatusText.Text = "Add at least 2 frames to play the animation (use “+ Frame”).";
+            return;
+        }
         _playing = !_playing;
         Timeline.SetPlaying(_playing);
-        if (_playing) _playTimer.Start(); else _playTimer.Stop();
+        if (_playing)
+        {
+            // Match the timeline frame rate.
+            _playTimer.Interval = TimeSpan.FromMilliseconds(1000.0 / Math.Max(1, Fps()));
+            _playTimer.Start();
+        }
+        else _playTimer.Stop();
     }
 
     private void StopPlay()
@@ -246,10 +256,11 @@ public partial class WallpaperStudio : Window
         var p = e.GetPosition(CropImage);
         if (DrawCheck.IsChecked == true)
         {
+            // Stamp along the segment; the timeline thumbnail is refreshed on
+            // mouse-up only (rebuilding it per move made drawing feel laggy).
             DrawSegment(_dragLast, p);
             _dragLast = p;
             RenderView();
-            RebuildThumb(_frameIndex);
         }
         else
         {
@@ -267,6 +278,11 @@ public partial class WallpaperStudio : Window
     {
         CropImage.ReleaseMouseCapture();
         _dragging = false;
+        if (DrawCheck.IsChecked == true && Current != null)
+        {
+            RenderView();
+            RebuildThumb(_frameIndex);
+        }
     }
 
     private Point ViewToSource(Point view)

@@ -31,7 +31,7 @@
                 </Grid.RowDefinitions>
 
                 <!-- System volume preview -->
-                <Border Grid.Row="0" Width="278" Height="56" CornerRadius="28" Margin="0,0,0,10"
+                <Border x:Name="SysPreviewPill" Grid.Row="0" Width="278" Height="56" CornerRadius="28" Margin="0,0,0,10"
                         Background="{DynamicResource PillBgBrush}" BorderBrush="{DynamicResource PillBorderBrush}"
                         BorderThickness="1" ClipToBounds="True">
                     <Border.Clip>
@@ -73,7 +73,7 @@
                 </Border>
 
                 <!-- Media preview -->
-                <Border Grid.Row="1" Width="278" Height="56" CornerRadius="28" Margin="0,0,0,12"
+                <Border x:Name="SpotPreviewPill" Grid.Row="1" Width="278" Height="56" CornerRadius="28" Margin="0,0,0,12"
                         Background="{DynamicResource PillBgBrush}" BorderBrush="{DynamicResource PillBorderBrush}"
                         BorderThickness="1" ClipToBounds="True">
                     <Border.Clip>
@@ -138,7 +138,7 @@
                 </StackPanel>
 
                 <!-- Live preview -->
-                <Border Grid.Row="4" Width="278" Height="56" CornerRadius="28" Margin="0,0,0,6"
+                <Border x:Name="LivePreviewPill" Grid.Row="4" Width="278" Height="56" CornerRadius="28" Margin="0,0,0,6"
                         Background="{DynamicResource PillBgBrush}" BorderBrush="{DynamicResource PillBorderBrush}"
                         BorderThickness="1" ClipToBounds="True">
                     <Border.Clip>
