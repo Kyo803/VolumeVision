@@ -73,6 +73,7 @@ public partial class SettingsWindow : Window
         BorderSlider.Value = _main.BorderWidth * 10;
         ShadowSlider.Value = _main.ShadowStrength * 100;
         GlowSlider.Value = _main.GlowStrength * 100;
+        FrostSlider.Value = _main.Frost * 100;
         BgOnlyCheck.IsChecked = _main.BgOnly;
         BgName.Text = _main.BgImageName;
         // Previews mirror the real pill's border so what you see is what you get.
@@ -256,6 +257,14 @@ public partial class SettingsWindow : Window
         GlowVal.Text = $"{e.NewValue:F0}%";
         if (_loading) return;
         _main.SetGlow(e.NewValue / 100.0);
+    }
+
+    private void Frost_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (FrostVal == null) return;
+        FrostVal.Text = $"{e.NewValue:F0}%";
+        if (_loading) return;
+        _main.SetFrost(e.NewValue / 100.0);
     }
 
     private void BgPick_Click(object sender, RoutedEventArgs e)

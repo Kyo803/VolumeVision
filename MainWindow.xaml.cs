@@ -260,6 +260,8 @@ public partial class MainWindow : Window
     public double ShadowStrength { get; private set; } = 1.0;
     public double GlowStrength { get; private set; } = 1.0;
     public double TrackScale { get; private set; } = 1.0;
+    /// <summary>Frost = how much the glass blurs the art behind it (0..1).</summary>
+    public double Frost { get; private set; } = 0.55;
 
     private readonly Dictionary<string, string> _colors = new()
     {
@@ -299,6 +301,7 @@ public partial class MainWindow : Window
             ShadowStrength = Math.Clamp(GetDouble(root, "shadow", ShadowStrength), 0.0, 2.0);
             GlowStrength = Math.Clamp(GetDouble(root, "glow", GlowStrength), 0.0, 2.0);
             TrackScale = Math.Clamp(GetDouble(root, "track", TrackScale), 0.4, 2.5);
+            Frost = Math.Clamp(GetDouble(root, "frost", Frost), 0.0, 1.0);
             _bgImageFile = GetString(root, "bgImage", "");
             BgSourceName = GetString(root, "bgSource", BgSourceName);
             if (root.TryGetProperty("bgOnly", out var boEl))
@@ -323,7 +326,7 @@ public partial class MainWindow : Window
             var cols = string.Join(",", _colors.Select(kv => $"\"{kv.Key}\":\"{kv.Value}\""));
             System.IO.File.WriteAllText(SettingsPath,
                 $"{{\"scale\":{_uiScale:F3},\"position\":\"{Position}\",\"glass\":{Glass:F2},\"gloss\":{Gloss:F2}," +
-                $"\"corner\":{CornerFactor:F3},\"border\":{BorderWidth:F2},\"shadow\":{ShadowStrength:F2},\"glow\":{GlowStrength:F2},\"track\":{TrackScale:F2}," +
+                $"\"corner\":{CornerFactor:F3},\"border\":{BorderWidth:F2},\"shadow\":{ShadowStrength:F2},\"glow\":{GlowStrength:F2},\"track\":{TrackScale:F2},\"frost\":{Frost:F2}," +
                 $"\"bgImage\":\"{_bgImageFile}\",\"bgSource\":\"{BgSourceName}\",\"bgOnly\":{(BgOnly ? "true" : "false")},\"sliderFx\":{(SliderFx ? "true" : "false")},\"colors\":{{{cols}}}}}");
         }
         catch { }
@@ -361,10 +364,24 @@ public partial class MainWindow : Window
             ("ring", "RingGreenBrush"), ("icons", "IconFillBrush") })
             if (TryParseColor(_colors[key], out var c))
                 SetRes(res, c);
+        // Edge definition: a gradient ring (bright top-left, fading bottom-right)
+        // instead of a flat stroke — this is what sells the glass edge.
+        if (TryParseColor(_colors["border"], out var bc) && bc.A > 0)
+        {
+            var ring = new LinearGradientBrush { StartPoint = new Point(0, 0), EndPoint = new Point(0.55, 1) };
+            ring.GradientStops.Add(new GradientStop(Color.FromArgb(bc.A, bc.R, bc.G, bc.B), 0));
+            ring.GradientStops.Add(new GradientStop(Color.FromArgb((byte)(bc.A * 0.30), bc.R, bc.G, bc.B), 0.5));
+            ring.GradientStops.Add(new GradientStop(Color.FromArgb((byte)(bc.A * 0.75), bc.R, bc.G, bc.B), 1));
+            ring.Freeze();
+            Pill.BorderBrush = ring;
+        }
+        else Pill.SetResourceReference(System.Windows.Controls.Border.BorderBrushProperty, "PillBorderBrush");
         // Live pill + tint use locally-owned brushes so they stay animatable
         // (brushes placed in Application.Resources are frozen by WPF).
         _pillBgBrush.Color = PillBgColor();
         GlossOverlay.Opacity = 0.55 * Gloss;
+        RimGlow.Opacity = Math.Clamp(0.55 * Gloss, 0, 1);
+        InnerShade.Opacity = Math.Clamp(0.5 * Gloss, 0, 1);
     }
 
     public bool SetColorHex(string key, string hex)
@@ -450,6 +467,8 @@ public partial class MainWindow : Window
         _colors["trackFill"] = DefTrackFill; _colors["tint"] = DefTint;
         _colors["ring"] = DefRing; _colors["icons"] = DefIcons;
         Glass = 0.73; Gloss = 1.0;
+        Frost = 0.55;
+        CornerFactor = 1.0; BorderWidth = 1.0; ShadowStrength = 1.0; GlowStrength = 1.0; TrackScale = 1.0;
         ApplyColors();
         ApplyPosition("Bottom");
         SaveSettings();
@@ -511,8 +530,11 @@ public partial class MainWindow : Window
     private void HideWallpaper()
     {
         ImageBehavior.SetAnimatedSource(BgImage, null);
+        ImageBehavior.SetAnimatedSource(FrostImage, null);
         BgImage.Source = null;
+        FrostImage.Source = null;
         BgClip.Visibility = Visibility.Collapsed;
+        FrostClip.Visibility = Visibility.Collapsed;
         ApplyGlassLayers();
     }
 
@@ -531,6 +553,7 @@ public partial class MainWindow : Window
             Pill.SetResourceReference(System.Windows.Controls.Border.BackgroundProperty, "PillBgBrush");
             GlassTint.Visibility = BgClip.Visibility;
         }
+        FrostClip.Visibility = BgClip.Visibility; // frost rides with the art
     }
 
     public void SetBgOnly(bool on)
@@ -553,14 +576,19 @@ public partial class MainWindow : Window
             if (_bgImageFile.EndsWith(".gif", StringComparison.OrdinalIgnoreCase))
             {
                 // Let the behavior own the decode: a plain Uri bitmap, no Freeze,
-                // so frames stay available for animation.
+                // so frames stay available for animation. Both the sharp and the
+                // frosted layer animate in lockstep.
                 BgImage.Source = null;
+                FrostImage.Source = null;
                 ImageBehavior.SetAnimatedSource(BgImage, new BitmapImage(new Uri(path)));
                 ImageBehavior.SetRepeatBehavior(BgImage, RepeatBehavior.Forever);
+                ImageBehavior.SetAnimatedSource(FrostImage, new BitmapImage(new Uri(path)));
+                ImageBehavior.SetRepeatBehavior(FrostImage, RepeatBehavior.Forever);
             }
             else
             {
                 ImageBehavior.SetAnimatedSource(BgImage, null);
+                ImageBehavior.SetAnimatedSource(FrostImage, null);
                 var bmp = new BitmapImage();
                 bmp.BeginInit();
                 bmp.UriSource = new Uri(path);
@@ -569,8 +597,11 @@ public partial class MainWindow : Window
                 bmp.EndInit();
                 bmp.Freeze();
                 BgImage.Source = bmp;
+                FrostImage.Source = bmp;
             }
             BgClip.Visibility = Visibility.Visible;
+            FrostClip.Visibility = Visibility.Visible;
+            ApplyFrost();
             ApplyGlassLayers(); // glass color tints over the art (unless bg-only mode)
             DebugLog.Write("wallpaper applied: " + _bgImageFile);
         }
@@ -580,6 +611,21 @@ public partial class MainWindow : Window
             _bgImageFile = "";
             HideWallpaper();
         }
+    }
+
+    /// <summary>Frost = blur strength/opacity of the glass layer over the art.</summary>
+    public void ApplyFrost()
+    {
+        FrostImage.Opacity = Math.Clamp(Frost, 0, 1);
+        if (FrostImage.Effect is System.Windows.Media.Effects.BlurEffect be)
+            be.Radius = 4 + Frost * 26;   // 4px crisp → 30px deep frost
+    }
+
+    public void SetFrost(double v)
+    {
+        Frost = Math.Clamp(v, 0.0, 1.0);
+        ApplyFrost();
+        SaveSettings();
     }
 
     /// <summary>Re-apply the current wallpaper file on demand (Apply button).</summary>
@@ -676,8 +722,12 @@ public partial class MainWindow : Window
         Pill.BorderThickness = new Thickness(BorderWidth);
         GlossOverlay.CornerRadius = new CornerRadius(radius);
         BgClip.CornerRadius = new CornerRadius(radius);
+        FrostClip.CornerRadius = new CornerRadius(radius);
         GlassTint.CornerRadius = new CornerRadius(radius);
         GlowLayer.CornerRadius = new CornerRadius(radius);
+        RimGlow.CornerRadius = new CornerRadius(radius);
+        RimGlow.BorderThickness = new Thickness(Math.Max(3, h * 0.09));
+        InnerShade.CornerRadius = new CornerRadius(radius);
         // Shadow strength
         if (Pill.Effect is System.Windows.Media.Effects.DropShadowEffect sh)
         {
@@ -693,7 +743,9 @@ public partial class MainWindow : Window
         double cw = Math.Max(1, pillW - 2 * bt);
         double ch = Math.Max(1, pillH - 2 * bt);
         double clipR = Math.Max(0, radius - bt);
-        BgClip.Clip = new RectangleGeometry(new Rect(0, 0, cw, ch), clipR, clipR);
+        var clip = new RectangleGeometry(new Rect(0, 0, cw, ch), clipR, clipR);
+        BgClip.Clip = clip;
+        FrostClip.Clip = clip;
         OsdViewBox.Width = w;
         OsdViewBox.Height = h;
         ApplyTrackScale();
@@ -706,12 +758,18 @@ public partial class MainWindow : Window
             BgImage.Width = ch;   // landscape width
             BgImage.Height = cw;  // landscape height
             BgImage.RenderTransform = new RotateTransform(angle);
+            FrostImage.Width = ch;
+            FrostImage.Height = cw;
+            FrostImage.RenderTransform = new RotateTransform(angle);
         }
         else
         {
             BgImage.Width = double.NaN;
             BgImage.Height = double.NaN;
             BgImage.RenderTransform = Transform.Identity;
+            FrostImage.Width = double.NaN;
+            FrostImage.Height = double.NaN;
+            FrostImage.RenderTransform = Transform.Identity;
         }
         // Counter-rotate the speaker glyphs so they stay upright on side docks.
         // (Chevrons intentionally rotate into ^/v: up=prev, down=next.)

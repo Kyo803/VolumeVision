@@ -39,7 +39,7 @@ public partial class WallpaperStudio : Window
     private System.Windows.Media.Color _penColor = Colors.White;
     private SD.Bitmap? _brushTip;    // raw tip (null = round pen)
     private SD.Bitmap? _tintedTip;   // tip recolored to pen color
-    private readonly double _brushSpacing = 0.22;
+    private double _brushSpacing = 0.22;
 
     private SD.Bitmap? Current => _frames.Count == 0 ? null : _frames[Math.Clamp(_frameIndex, 0, _frames.Count - 1)];
 
@@ -394,6 +394,29 @@ public partial class WallpaperStudio : Window
             try { _brushTip = new SD.Bitmap(path); } catch { _brushTip = null; }
         }
         RebuildTintedTip();
+        // Preview: show the tip (tinted) or a plain round dot.
+        if (_brushTip != null)
+        {
+            BrushPreviewImg.Source = ToBitmapImage(_brushTip);
+        }
+        else
+        {
+            using var dot = new SD.Bitmap(48, 48, SDI.PixelFormat.Format32bppArgb);
+            using (var g = SD.Graphics.FromImage(dot))
+            {
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                using var br = new SD.SolidBrush(SD.Color.FromArgb(_penColor.A, _penColor.R, _penColor.G, _penColor.B));
+                g.FillEllipse(br, 6, 6, 36, 36);
+            }
+            BrushPreviewImg.Source = ToBitmapImage(dot);
+        }
+    }
+
+    private void Spacing_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (SpacingVal == null) return;
+        _brushSpacing = Math.Clamp(e.NewValue / 100.0, 0.05, 2.0);
+        SpacingVal.Text = $"{e.NewValue:F0}%";
     }
 
     private void ReloadBrushes_Click(object sender, RoutedEventArgs e)
@@ -578,6 +601,9 @@ public partial class WallpaperStudio : Window
             _penColor = Color.FromRgb(dlg.SelectedColor.R, dlg.SelectedColor.G, dlg.SelectedColor.B);
             PenColorBtn.Background = new SolidColorBrush(_penColor);
             RebuildTintedTip();
+            // Refresh the preview dot color too.
+            if (_brushTip == null) Brush_Changed(this, new SelectionChangedEventArgs(
+                System.Windows.Controls.Primitives.Selector.SelectionChangedEvent, new List<object>(), new List<object>()));
         }
     }
 

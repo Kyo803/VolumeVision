@@ -30,25 +30,64 @@
                 <DropShadowEffect BlurRadius="26" Direction="270" ShadowDepth="10" Opacity="0.34" Color="#000000"/>
             </Border.Effect>
             <Grid>
-                <!-- Custom wallpaper (image or animated GIF), glass tint goes above it -->
+                <!-- ===== Liquid Glass stack (bottom → top) ===== -->
+                <!-- 1. Sharp wallpaper -->
                 <Border x:Name="BgClip" CornerRadius="33" Visibility="Collapsed" ClipToBounds="True">
                     <Image x:Name="BgImage" Stretch="UniformToFill"
                            HorizontalAlignment="Center" VerticalAlignment="Center"
                            RenderTransformOrigin="0.5,0.5"/>
                 </Border>
+                <!-- 2. Frosted glass: blurred copy of the wallpaper -->
+                <Border x:Name="FrostClip" CornerRadius="33" Visibility="Collapsed" ClipToBounds="True"
+                        IsHitTestVisible="False">
+                    <Image x:Name="FrostImage" Stretch="UniformToFill" Opacity="0.85"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           RenderTransformOrigin="0.5,0.5">
+                        <Image.Effect>
+                            <BlurEffect Radius="18" RenderingBias="Quality"/>
+                        </Image.Effect>
+                    </Image>
+                </Border>
+                <!-- 3. Adaptive tint (user glass colour) -->
                 <Border x:Name="GlassTint" CornerRadius="33" Visibility="Collapsed"
                         Background="{DynamicResource PillBgBrush}"/>
-                <!-- Cursor-reactive liquid glow (wpf liquid glass Level 2) -->
+                <!-- 4. Refraction rim: soft light bending at the curved edges -->
+                <Border x:Name="RimGlow" CornerRadius="33" BorderThickness="5" Opacity="0.5"
+                        IsHitTestVisible="False">
+                    <Border.BorderBrush>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0.45,1">
+                            <GradientStop Color="#80FFFFFF" Offset="0"/>
+                            <GradientStop Color="#12FFFFFF" Offset="0.45"/>
+                            <GradientStop Color="#00000000" Offset="0.68"/>
+                            <GradientStop Color="#4DFFFFFF" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.BorderBrush>
+                    <Border.Effect>
+                        <BlurEffect Radius="9" RenderingBias="Quality"/>
+                    </Border.Effect>
+                </Border>
+                <!-- 5. Specular streak (light source, top-left) -->
+                <Border x:Name="GlossOverlay" CornerRadius="33" Opacity="0.55" IsHitTestVisible="False">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0.7,1">
+                            <GradientStop Color="#A6FFFFFF" Offset="0"/>
+                            <GradientStop Color="#1FFFFFFF" Offset="0.16"/>
+                            <GradientStop Color="#00000000" Offset="0.4"/>
+                            <GradientStop Color="#00000000" Offset="0.72"/>
+                            <GradientStop Color="#26FFFFFF" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                </Border>
+                <!-- 6. Cursor-reactive liquid glow -->
                 <Border x:Name="GlowLayer" CornerRadius="33" Background="{StaticResource CursorGlow}"
                         Opacity="0" IsHitTestVisible="False"/>
-                <!-- Top specular highlight (approx of CSS inset top light) -->
-                <Border x:Name="GlossOverlay" CornerRadius="33" Opacity="0.55">
+                <!-- 7. Inner bottom shade — gives the glass volume -->
+                <Border x:Name="InnerShade" CornerRadius="33" Opacity="0.5" IsHitTestVisible="False">
                     <Border.Background>
                         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                            <GradientStop Color="#8CE6E6E6" Offset="0"/>
-                            <GradientStop Color="#00282828" Offset="0.32"/>
-                            <GradientStop Color="#00000000" Offset="0.55"/>
-                            <GradientStop Color="#26E6E6E6" Offset="1"/>
+                            <GradientStop Color="#00000000" Offset="0"/>
+                            <GradientStop Color="#00000000" Offset="0.6"/>
+                            <GradientStop Color="#38000000" Offset="1"/>
                         </LinearGradientBrush>
                     </Border.Background>
                 </Border>

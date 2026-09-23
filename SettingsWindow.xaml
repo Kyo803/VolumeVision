@@ -382,6 +382,19 @@
                         <TextBlock x:Name="GlowVal" Grid.Column="2" Text="100%" Foreground="#7A7A85" FontSize="11"
                                    TextAlignment="Right" VerticalAlignment="Center"/>
                     </Grid>
+                    <Grid Grid.Column="2" Grid.Row="3" Margin="0,3">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="58"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="40"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Frost" Foreground="#DCDCE2" FontSize="12" VerticalAlignment="Center"/>
+                        <Slider x:Name="FrostSlider" Grid.Column="1" Style="{StaticResource PillSlider}"
+                                Minimum="0" Maximum="100" Value="55" VerticalAlignment="Center" Margin="0,0,8,0"
+                                ValueChanged="Frost_Changed"/>
+                        <TextBlock x:Name="FrostVal" Grid.Column="2" Text="55%" Foreground="#7A7A85" FontSize="11"
+                                   TextAlignment="Right" VerticalAlignment="Center"/>
+                    </Grid>
                 </Grid>
 
                 <!-- Bottom actions -->

@@ -110,6 +110,24 @@
                             <Button Grid.Column="1" Content="Reload brushes" Style="{StaticResource GhostPillButton}"
                                     Margin="8,0,0,0" Click="ReloadBrushes_Click"/>
                         </Grid>
+                        <Grid Margin="0,6,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="58"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="40"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Spacing" Foreground="#DCDCE2" FontSize="12" VerticalAlignment="Center"/>
+                            <Slider x:Name="SpacingSlider" Grid.Column="1" Style="{StaticResource PillSlider}"
+                                    Minimum="5" Maximum="200" Value="22" VerticalAlignment="Center" Margin="0,0,8,0"
+                                    ValueChanged="Spacing_Changed"/>
+                            <TextBlock x:Name="SpacingVal" Grid.Column="2" Text="22%" Foreground="#7A7A85" FontSize="11"
+                                       TextAlignment="Right" VerticalAlignment="Center"/>
+                            <Border Grid.Column="3" Width="34" Height="34" CornerRadius="8" Background="#1C1C21"
+                                    BorderBrush="#2C2C33" BorderThickness="1" Margin="8,0,0,0">
+                                <Image x:Name="BrushPreviewImg" Stretch="Uniform" Margin="3"/>
+                            </Border>
+                        </Grid>
 
                         <!-- Adjust -->
                         <TextBlock Text="ADJUST" Foreground="#5A5A64" FontSize="10" FontWeight="SemiBold" Margin="0,16,0,6"/>
