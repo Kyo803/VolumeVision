@@ -10,18 +10,27 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <!-- ===== Transport ===== -->
+            <!-- ===== Transport + frame ops ===== -->
             <Grid Grid.Row="0" Margin="0,0,0,8">
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button x:Name="FirstBtn" Content="⏮" Style="{StaticResource GhostPillButton}" Width="30" Margin="0,0,4,0" Click="First_Click"/>
-                    <Button x:Name="PrevBtn" Content="◀" Style="{StaticResource GhostPillButton}" Width="30" Margin="0,0,4,0" Click="Prev_Click"/>
-                    <Button x:Name="PlayBtn" Content="▶" Style="{StaticResource PillButton}" Width="40" Margin="0,0,4,0" Click="Play_Click"/>
-                    <Button x:Name="StopBtn" Content="■" Style="{StaticResource GhostPillButton}" Width="30" Margin="0,0,4,0" Click="Stop_Click"/>
-                    <Button x:Name="NextBtn" Content="▶" Style="{StaticResource GhostPillButton}" Width="30" Margin="0,0,4,0" Click="Next_Click"/>
-                    <Button x:Name="LastBtn" Content="⏭" Style="{StaticResource GhostPillButton}" Width="30" Click="Last_Click"/>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="FirstBtn" Content="⏮" Style="{StaticResource GhostPillButton}" Width="30" FontFamily="Segoe UI Symbol" FontSize="13" Margin="0,0,4,0" Click="First_Click"/>
+                    <Button x:Name="PrevBtn" Content="◀" Style="{StaticResource GhostPillButton}" Width="30" FontFamily="Segoe UI Symbol" FontSize="13" Margin="0,0,4,0" Click="Prev_Click"/>
+                    <Button x:Name="PlayBtn" Content="▶" Style="{StaticResource PillButton}" Width="42" FontFamily="Segoe UI Symbol" FontSize="15" Margin="0,0,4,0" Click="Play_Click"/>
+                    <Button x:Name="StopBtn" Content="■" Style="{StaticResource GhostPillButton}" Width="30" FontFamily="Segoe UI Symbol" FontSize="13" Margin="0,0,4,0" Click="Stop_Click"/>
+                    <Button x:Name="NextBtn" Content="▶" Style="{StaticResource GhostPillButton}" Width="30" FontFamily="Segoe UI Symbol" FontSize="13" Margin="0,0,4,0" Click="Next_Click"/>
+                    <Button x:Name="LastBtn" Content="⏭" Style="{StaticResource GhostPillButton}" Width="30" FontFamily="Segoe UI Symbol" FontSize="13" Click="Last_Click"/>
                 </StackPanel>
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <TextBlock x:Name="FrameLabel" Text="0 / 0" Foreground="#9A9AA5" FontSize="11" VerticalAlignment="Center" Margin="0,0,10,0"/>
+
+                <TextBlock x:Name="FrameLabel" Grid.Column="1" Text="0 / 0" Foreground="#9A9AA5" FontSize="12"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" Margin="10,0"/>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button x:Name="AddBtn" Content="+ Frame" Style="{StaticResource GhostPillButton}" Margin="0,0,4,0" Click="Add_Click"/>
                     <Button x:Name="DupeBtn" Content="Duplicate" Style="{StaticResource GhostPillButton}" Margin="0,0,4,0" Click="Dupe_Click"/>
                     <Button x:Name="DelBtn" Content="Delete" Style="{StaticResource GhostPillButton}" Margin="0,0,4,0" Click="Del_Click"/>

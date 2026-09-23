@@ -128,23 +128,10 @@ public partial class GifLibrary : Window
             Background = new SolidColorBrush(Color.FromArgb(0xBA, 0, 0, 0)),
             BorderBrush = new SolidColorBrush(active ? Color.FromRgb(0xFF, 0xFF, 0xFF) : Color.FromRgb(0x2C, 0x2C, 0x33)),
             BorderThickness = new Thickness(active ? 2 : 1),
-            ClipToBounds = true,
+            Clip = clip,
             Cursor = Cursors.Hand,
-            Child = new Grid
-            {
-                Children =
-                {
-                    new System.Windows.Shapes.Rectangle
-                    {
-                        Width = 288, Height = 63,
-                        RadiusX = 31.5, RadiusY = 31.5,
-                        Fill = new VisualBrush(img) { Stretch = Stretch.UniformToFill },
-                    },
-                },
-            },
+            Child = img,
         };
-        // Clip the preview to the pill so art never spills past the corners.
-        ((Grid)pill.Child).Clip = clip;
 
         var label = new TextBlock
         {

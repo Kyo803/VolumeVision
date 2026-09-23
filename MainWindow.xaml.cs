@@ -990,6 +990,18 @@ public partial class MainWindow : Window
         PillScale.BeginAnimation(ScaleTransform.ScaleYProperty, back);
     }
 
+    /// <summary>Opens the wallpaper studio (crop/draw/animate).</summary>
+    public void OpenStudio()
+    {
+        try
+        {
+            var studio = new WallpaperStudio(this) { Owner = (Window?)_settings ?? this };
+            studio.ShowDialog();
+            DebugLog.Write("studio opened");
+        }
+        catch (Exception ex) { DebugLog.Write("studio FAIL: " + ex.Message); }
+    }
+
     /// <summary>Opens the GIF library window (one pill preview per file).</summary>
     public void OpenLibrary()
     {

@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:VolumeOSD.Controls"
-        Title="Wallpaper Studio" Width="880" Height="620"
+        Title="Wallpaper Studio" Width="1000" Height="720"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         ResizeMode="NoResize" WindowStartupLocation="CenterScreen" Topmost="True"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
@@ -15,6 +15,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
@@ -78,14 +79,8 @@
                 <!-- Tools -->
                 <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <StackPanel>
-                        <!-- Frames -->
-                        <TextBlock Text="TIMELINE" Foreground="#5A5A64" FontSize="10" FontWeight="SemiBold" Margin="0,0,0,6"/>
-                        <controls:Timeline x:Name="Timeline"/>
-                        <CheckBox x:Name="OnionCheck" Content="Onion skin (ghost previous frame)"
-                                  Style="{StaticResource PillCheck}" Margin="2,8,0,0"/>
-
                         <!-- Draw -->
-                        <TextBlock Text="DRAW" Foreground="#5A5A64" FontSize="10" FontWeight="SemiBold" Margin="0,16,0,6"/>
+                        <TextBlock Text="DRAW" Foreground="#5A5A64" FontSize="10" FontWeight="SemiBold" Margin="0,0,0,6"/>
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
@@ -189,8 +184,18 @@
                 </ScrollViewer>
             </Grid>
 
+            <!-- ===== Timeline (full width) ===== -->
+            <StackPanel Grid.Row="2" Margin="0,16,0,0">
+                <Grid Margin="2,0,0,6">
+                    <TextBlock Text="TIMELINE" Foreground="#5A5A64" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <CheckBox x:Name="OnionCheck" Content="Onion skin (ghost previous frame)"
+                              Style="{StaticResource PillCheck}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                </Grid>
+                <controls:Timeline x:Name="Timeline"/>
+            </StackPanel>
+
             <!-- ===== Action bar ===== -->
-            <Grid Grid.Row="2" Margin="0,16,0,0">
+            <Grid Grid.Row="3" Margin="0,14,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>

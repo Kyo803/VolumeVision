@@ -7,19 +7,25 @@ public partial class App : Application
 {
     private static Mutex? _mutex;
 
+    internal static string CommandFile => System.IO.Path.Combine(
+        System.IO.Path.GetTempPath(), "v2_cmd.txt");
+
     protected override void OnStartup(StartupEventArgs e)
     {
         Services.DebugLog.Write("App.OnStartup enter");
-        bool openSettings = e.Args.Contains("--settings", StringComparer.OrdinalIgnoreCase);
 
-        if (openSettings)
+        // Second instance with a command flag: hand it to the running instance.
+        string? cmd = null;
+        if (e.Args.Contains("--settings", StringComparer.OrdinalIgnoreCase)) cmd = "settings";
+        else if (e.Args.Contains("--studio", StringComparer.OrdinalIgnoreCase)) cmd = "studio";
+        else if (e.Args.Contains("--library", StringComparer.OrdinalIgnoreCase)) cmd = "library";
+
+        if (cmd != null)
         {
-            // Second instance with --settings: tell the first instance via a named file, then exit.
             try
             {
-                string flag = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "v2_settings.open");
-                System.IO.File.WriteAllText(flag, DateTime.UtcNow.ToString("O"));
-                Services.DebugLog.Write("wrote settings flag, exiting");
+                System.IO.File.WriteAllText(CommandFile, cmd);
+                Services.DebugLog.Write("wrote command flag: " + cmd);
             }
             catch (Exception ex) { Services.DebugLog.Write("flag write FAIL: " + ex.Message); }
             Shutdown();
@@ -77,7 +83,7 @@ public partial class App : Application
             }
         }
 
-        // Poll for --settings flag from a second instance (checks every 2s).
+        // Poll for a command flag from a second instance (every 2s).
         if (mainWin != null)
         {
             var pollTimer = new System.Windows.Threading.DispatcherTimer
@@ -86,12 +92,15 @@ public partial class App : Application
             {
                 try
                 {
-                    string flag = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "v2_settings.open");
-                    if (System.IO.File.Exists(flag))
+                    if (!System.IO.File.Exists(CommandFile)) return;
+                    string cmd = System.IO.File.ReadAllText(CommandFile).Trim().ToLowerInvariant();
+                    System.IO.File.Delete(CommandFile);
+                    Services.DebugLog.Write("command consumed: " + cmd);
+                    switch (cmd)
                     {
-                        System.IO.File.Delete(flag);
-                        mainWin.OpenSettings();
-                        Services.DebugLog.Write("settings flag consumed, opening settings");
+                        case "settings": mainWin.OpenSettings(); break;
+                        case "studio": mainWin.OpenStudio(); break;
+                        case "library": mainWin.OpenLibrary(); break;
                     }
                 }
                 catch { }

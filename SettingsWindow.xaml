@@ -34,14 +34,12 @@
                 <Border Grid.Row="0" Width="278" Height="56" CornerRadius="28" Margin="0,0,0,10"
                         Background="{DynamicResource PillBgBrush}" BorderBrush="{DynamicResource PillBorderBrush}"
                         BorderThickness="1" ClipToBounds="True">
+                    <Border.Clip>
+                        <RectangleGeometry Rect="0,0,278,56" RadiusX="28" RadiusY="28"/>
+                    </Border.Clip>
                     <Grid>
-                        <Image x:Name="SysPreviewBg" Stretch="UniformToFill" Visibility="Collapsed">
-                            <Image.Clip>
-                                <RectangleGeometry Rect="0,0,278,56" RadiusX="28" RadiusY="28"/>
-                            </Image.Clip>
-                        </Image>
-                        <Border x:Name="SysPreviewTint" Background="{DynamicResource PillBgBrush}"
-                                CornerRadius="28" Visibility="Collapsed"/>
+                        <Image x:Name="SysPreviewBg" Stretch="UniformToFill" Visibility="Collapsed"/>
+                        <Border x:Name="SysPreviewTint" Background="{DynamicResource PillBgBrush}" CornerRadius="0" Visibility="Collapsed"/>
                         <Grid Margin="12,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
@@ -78,14 +76,12 @@
                 <Border Grid.Row="1" Width="278" Height="56" CornerRadius="28" Margin="0,0,0,12"
                         Background="{DynamicResource PillBgBrush}" BorderBrush="{DynamicResource PillBorderBrush}"
                         BorderThickness="1" ClipToBounds="True">
+                    <Border.Clip>
+                        <RectangleGeometry Rect="0,0,278,56" RadiusX="28" RadiusY="28"/>
+                    </Border.Clip>
                     <Grid>
-                        <Image x:Name="SpotPreviewBg" Stretch="UniformToFill" Visibility="Collapsed">
-                            <Image.Clip>
-                                <RectangleGeometry Rect="0,0,278,56" RadiusX="28" RadiusY="28"/>
-                            </Image.Clip>
-                        </Image>
-                        <Border x:Name="SpotPreviewTint" Background="{DynamicResource PillBgBrush}"
-                                CornerRadius="28" Visibility="Collapsed"/>
+                        <Image x:Name="SpotPreviewBg" Stretch="UniformToFill" Visibility="Collapsed"/>
+                        <Border x:Name="SpotPreviewTint" Background="{DynamicResource PillBgBrush}" CornerRadius="0" Visibility="Collapsed"/>
                         <Grid Margin="12,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
@@ -145,14 +141,12 @@
                 <Border Grid.Row="4" Width="278" Height="56" CornerRadius="28" Margin="0,0,0,6"
                         Background="{DynamicResource PillBgBrush}" BorderBrush="{DynamicResource PillBorderBrush}"
                         BorderThickness="1" ClipToBounds="True">
+                    <Border.Clip>
+                        <RectangleGeometry Rect="0,0,278,56" RadiusX="28" RadiusY="28"/>
+                    </Border.Clip>
                     <Grid>
-                        <Image x:Name="LivePreviewBg" Stretch="UniformToFill" Visibility="Collapsed">
-                            <Image.Clip>
-                                <RectangleGeometry Rect="0,0,278,56" RadiusX="28" RadiusY="28"/>
-                            </Image.Clip>
-                        </Image>
-                        <Border x:Name="LivePreviewTint" Background="{DynamicResource PillBgBrush}"
-                                CornerRadius="28" Visibility="Collapsed"/>
+                        <Image x:Name="LivePreviewBg" Stretch="UniformToFill" Visibility="Collapsed"/>
+                        <Border x:Name="LivePreviewTint" Background="{DynamicResource PillBgBrush}" CornerRadius="0" Visibility="Collapsed"/>
                         <Grid Margin="12,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
