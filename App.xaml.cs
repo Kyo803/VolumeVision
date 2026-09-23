@@ -6,7 +6,6 @@ namespace VolumeOSD;
 public partial class App : Application
 {
     private static Mutex? _mutex;
-    internal static bool OpenSettingsRequested;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -39,13 +38,22 @@ public partial class App : Application
         Services.DebugLog.Write("App.OnStartup first instance, base.OnStartup");
         bool autostart = Services.AutostartHelper.EnsureEnabled();
         Services.DebugLog.Write($"autostart ensured: {autostart}");
+        // Log UI-thread exceptions but keep the app alive (a settings-window bug
+        // must never take the whole OSD down).
         DispatcherUnhandledException += (_, ex) =>
-            Services.DebugLog.Write("FATAL UI: " + ex.Exception);
+        {
+            Services.DebugLog.Write("FATAL UI (handled, app kept alive): " + ex.Exception);
+            ex.Handled = true;
+        };
         AppDomain.CurrentDomain.UnhandledException += (_, ex) =>
             Services.DebugLog.Write("FATAL bg: " + ex.ExceptionObject);
+        // Software rendering: this machine's GPU driver fails to composite
+        // hardware-accelerated layered (AllowsTransparency) windows — they come
+        // out blank. WPF's software rasterizer still does full anti-aliasing,
+        // gradients and ClearType, so quality is unaffected here.
         System.Windows.Media.RenderOptions.ProcessRenderMode =
             System.Windows.Interop.RenderMode.SoftwareOnly;
-        Services.DebugLog.Write("render mode = SoftwareOnly");
+        Services.DebugLog.Write("render mode = SoftwareOnly (layered-window safe)");
         base.OnStartup(e);
 
         MainWindow? mainWin = null;

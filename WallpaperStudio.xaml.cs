@@ -47,6 +47,23 @@ public partial class WallpaperStudio : Window
         _animTimer.Tick += (_, _) => AnimTick();
         _ready = true;
         UpdateFrameInfo();
+
+        // Smooth entrance: fade + subtle scale-up.
+        Opacity = 0;
+        ShellScale.ScaleX = ShellScale.ScaleY = 0.96;
+        Loaded += (_, _) =>
+        {
+            var ease = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut };
+            BeginAnimation(OpacityProperty, new System.Windows.Media.Animation.DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(180)) { EasingFunction = ease });
+            var grow = new System.Windows.Media.Animation.DoubleAnimation(0.96, 1, TimeSpan.FromMilliseconds(220)) { EasingFunction = ease };
+            ShellScale.BeginAnimation(ScaleTransform.ScaleXProperty, grow);
+            ShellScale.BeginAnimation(ScaleTransform.ScaleYProperty, grow);
+        };
+    }
+
+    private void Shell_Drag(object sender, MouseButtonEventArgs e)
+    {
+        if (e.LeftButton == MouseButtonState.Pressed) DragMove();
     }
 
     private static SD.Bitmap To32bpp(SD.Image src)

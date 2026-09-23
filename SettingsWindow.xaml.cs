@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 
 namespace VolumeOSD;
@@ -26,7 +27,26 @@ public partial class SettingsWindow : Window
         RefreshAll();
         RefreshWallpaperPreview();
         _loading = false;
+
+        // Smooth entrance: fade + subtle scale-up.
+        Opacity = 0;
+        ShellScale.ScaleX = ShellScale.ScaleY = 0.96;
+        Loaded += (_, _) =>
+        {
+            var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+            BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(180)) { EasingFunction = ease });
+            var grow = new DoubleAnimation(0.96, 1, TimeSpan.FromMilliseconds(220)) { EasingFunction = ease };
+            ShellScale.BeginAnimation(ScaleTransform.ScaleXProperty, grow);
+            ShellScale.BeginAnimation(ScaleTransform.ScaleYProperty, grow);
+        };
     }
+
+    private void Shell_Drag(object sender, MouseButtonEventArgs e)
+    {
+        if (e.LeftButton == MouseButtonState.Pressed) DragMove();
+    }
+
+    private void Close_Click(object sender, RoutedEventArgs e) => Close();
 
     private void InitSwatches()
     {
@@ -49,11 +69,21 @@ public partial class SettingsWindow : Window
         SizeSlider.Value = _main.UiScale * 100;
         BgOnlyCheck.IsChecked = _main.BgOnly;
         BgName.Text = _main.BgImageName;
-        foreach (var b in new[] { PosTop, PosBottom, PosLeft, PosRight })
-            b.Opacity = ((b.Tag as string) == _main.Position) ? 1.0 : 0.52;
+        UpdateDockButtons();
         RefreshPreviewPills();
         RefreshWallpaperPreview();
         HotkeyHint.Text = $"Hotkeys: {_main.SettingsHotkeyLabel} settings · Ctrl+Shift+V summon · Ctrl+Shift+Plus/Minus resize · Alt+X/S overlay · Alt+Z/C prev/next";
+    }
+
+    /// <summary>Active dock = white pill with dark text; others = subtle dark pill.</summary>
+    private void UpdateDockButtons()
+    {
+        foreach (var b in new[] { PosTop, PosBottom, PosLeft, PosRight })
+        {
+            bool active = (b.Tag as string) == _main.Position;
+            b.Background = new SolidColorBrush(active ? Color.FromRgb(0xFF, 0xFF, 0xFF) : Color.FromRgb(0x1C, 0x1C, 0x21));
+            b.Foreground = new SolidColorBrush(active ? Color.FromRgb(0x0A, 0x0A, 0x0C) : Color.FromRgb(0xD8, 0xD8, 0xDE));
+        }
     }
 
     private void PaintSwatch(string key)
@@ -198,8 +228,7 @@ public partial class SettingsWindow : Window
         if (_loading) return;
         string pos = (sender as Button)?.Tag as string ?? "Bottom";
         _main.ApplyPosition(pos);
-        foreach (var b in new[] { PosTop, PosBottom, PosLeft, PosRight })
-            b.Opacity = ((b.Tag as string) == _main.Position) ? 1.0 : 0.52;
+        UpdateDockButtons();
     }
 
     private void Studio_Click(object sender, RoutedEventArgs e)

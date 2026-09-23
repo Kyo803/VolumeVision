@@ -42,6 +42,10 @@ public partial class MainWindow : Window
     private static readonly SolidColorBrush NeutralDiscBrush =
         new(Color.FromRgb(0xD9, 0xD9, 0xD9));
 
+    // Locally-owned (never frozen) brush for the live pill background so the
+    // glass slider can animate smoothly. Mirrors the PillBgBrush resource.
+    private readonly SolidColorBrush _pillBgBrush = new(Color.FromArgb(0xBA, 0, 0, 0));
+
     private void UpdateMediaTip()
     {
         string tip;
@@ -65,6 +69,9 @@ public partial class MainWindow : Window
     {
         DebugLog.Write("MainWindow ctor enter");
         InitializeComponent();
+        // Local, animatable brush for the glass fill (see _pillBgBrush).
+        Pill.Background = _pillBgBrush;
+        GlassTint.Background = _pillBgBrush;
         DebugLog.Write("MainWindow ctor InitializeComponent ok");
         Loaded += MainWindow_Loaded;
         SourceInitialized += MainWindow_SourceInitialized;
@@ -316,6 +323,14 @@ public partial class MainWindow : Window
     private void SetRes(string resKey, Color color)
         => Application.Current.Resources[resKey] = new SolidColorBrush(color);
 
+    /// <summary>Pill background color at the current glass alpha.</summary>
+    private Color PillBgColor()
+    {
+        if (!TryParseColor(_colors["bg"], out var bg)) return Color.FromArgb(0xBA, 0, 0, 0);
+        byte a = (byte)Math.Round(255 * Glass * (bg.A / 255.0));
+        return Color.FromArgb(a, bg.R, bg.G, bg.B);
+    }
+
     public void ApplyColors()
     {
         // Background alpha = glass slider × picked alpha (so "no fill" survives).
@@ -331,6 +346,9 @@ public partial class MainWindow : Window
             ("ring", "RingGreenBrush"), ("icons", "IconFillBrush") })
             if (TryParseColor(_colors[key], out var c))
                 SetRes(res, c);
+        // Live pill + tint use locally-owned brushes so they stay animatable
+        // (brushes placed in Application.Resources are frozen by WPF).
+        _pillBgBrush.Color = PillBgColor();
         GlossOverlay.Opacity = 0.55 * Gloss;
     }
 
@@ -345,38 +363,34 @@ public partial class MainWindow : Window
 
     public void SetGlass(double v)
     {
-        Glass = Math.Clamp(v, 0.4, 1.0);
-        // smooth glass transition: color animation on alpha
-        if (TryParseColor(_colors["bg"], out var bg))
+        try
         {
-            byte targetA = (byte)Math.Round(255 * Glass * (bg.A / 255.0));
-            var from = (Color)ColorConverter.ConvertFromString(((SolidColorBrush)FindResource("PillBgBrush")).Color.ToString());
-            // direct set already in ApplyColors will be animated via helper below; keep ApplyColors for other keys
-            var animBrush = new SolidColorBrush(Color.FromArgb(targetA, bg.R, bg.G, bg.B));
-            Application.Current.Resources["PillBgBrush"] = animBrush;
-            var ca = new ColorAnimation(Color.FromArgb(from.A, bg.R, bg.G, bg.B), Color.FromArgb(targetA, bg.R, bg.G, bg.B), TimeSpan.FromMilliseconds(180))
+            Glass = Math.Clamp(v, 0.4, 1.0);
+            Color target = PillBgColor();
+            // Keep the shared resource in sync (used by the settings previews).
+            SetRes("PillBgBrush", target);
+            // Animate the locally-owned pill brush — never frozen, always safe.
+            var anim = new ColorAnimation(_pillBgBrush.Color, target, TimeSpan.FromMilliseconds(200))
             { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
-            animBrush.BeginAnimation(SolidColorBrush.ColorProperty, ca);
-            // sync other colors without re-setting bg
-            foreach (var (key, res) in new[] { ("border", "PillBorderBrush"), ("track", "TrackBgBrush"),
-                ("trackFill", "TrackFillGrayBrush"), ("tint", "SpotifyTintBrush"),
-                ("ring", "RingGreenBrush"), ("icons", "IconFillBrush") })
-                if (TryParseColor(_colors[key], out var c))
-                    SetRes(res, c);
+            _pillBgBrush.BeginAnimation(SolidColorBrush.ColorProperty, anim);
             GlossOverlay.Opacity = 0.55 * Gloss;
+            SaveSettings();
         }
-        else ApplyColors();
-        SaveSettings();
+        catch (Exception ex) { DebugLog.Write("SetGlass FAIL: " + ex.Message); }
     }
 
     public void SetGloss(double v)
     {
-        Gloss = Math.Clamp(v, 0.0, 1.5);
-        double target = 0.55 * Gloss;
-        var da = new DoubleAnimation(GlossOverlay.Opacity, target, TimeSpan.FromMilliseconds(220))
-        { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
-        GlossOverlay.BeginAnimation(UIElement.OpacityProperty, da);
-        SaveSettings();
+        try
+        {
+            Gloss = Math.Clamp(v, 0.0, 1.5);
+            double target = 0.55 * Gloss;
+            var da = new DoubleAnimation(GlossOverlay.Opacity, target, TimeSpan.FromMilliseconds(220))
+            { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
+            GlossOverlay.BeginAnimation(UIElement.OpacityProperty, da);
+            SaveSettings();
+        }
+        catch (Exception ex) { DebugLog.Write("SetGloss FAIL: " + ex.Message); }
     }
 
     public void ResetAppearance()
@@ -860,9 +874,23 @@ public partial class MainWindow : Window
 
     private void Pill_MouseDown(object sender, MouseButtonEventArgs e)
     {
+        // Liquid press squish.
+        var squish = new DoubleAnimation(1, 0.975, TimeSpan.FromMilliseconds(90))
+        { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
+        PillScale.BeginAnimation(ScaleTransform.ScaleXProperty, squish);
+        PillScale.BeginAnimation(ScaleTransform.ScaleYProperty, squish);
+
         // Double-click on empty pill area opens settings (not on buttons/tracks).
         if (e.ClickCount == 2 && (e.OriginalSource == Pill || e.OriginalSource == GlossOverlay))
             OpenSettings();
+    }
+
+    private void Pill_MouseUp(object sender, MouseButtonEventArgs e)
+    {
+        var back = new DoubleAnimation(PillScale.ScaleX, 1, TimeSpan.FromMilliseconds(180))
+        { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
+        PillScale.BeginAnimation(ScaleTransform.ScaleXProperty, back);
+        PillScale.BeginAnimation(ScaleTransform.ScaleYProperty, back);
     }
 
     public void OpenSettings()
