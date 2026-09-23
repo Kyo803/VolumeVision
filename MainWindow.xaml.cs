@@ -757,22 +757,25 @@ public partial class MainWindow : Window
         {
             BgImage.Width = ch;   // landscape width
             BgImage.Height = cw;  // landscape height
-            BgImage.RenderTransform = new RotateTransform(angle);
+            BgImage.RenderTransform = Transform.Identity;
+            BgImage.LayoutTransform = new RotateTransform(angle);
             FrostImage.Width = ch;
             FrostImage.Height = cw;
-            FrostImage.RenderTransform = new RotateTransform(angle);
+            FrostImage.RenderTransform = Transform.Identity;
+            FrostImage.LayoutTransform = new RotateTransform(angle);
         }
         else
         {
             BgImage.Width = double.NaN;
             BgImage.Height = double.NaN;
             BgImage.RenderTransform = Transform.Identity;
+            BgImage.LayoutTransform = Transform.Identity;
             FrostImage.Width = double.NaN;
             FrostImage.Height = double.NaN;
             FrostImage.RenderTransform = Transform.Identity;
+            FrostImage.LayoutTransform = Transform.Identity;
         }
-        // Counter-rotate the speaker glyphs so they stay upright on side docks.
-        // (Chevrons intentionally rotate into ^/v: up=prev, down=next.)
+        // Counter-rotate the speaker glyphs so they stay upright on side docks.        // (Chevrons intentionally rotate into ^/v: up=prev, down=next.)
         System.Windows.Media.Transform speakerT =
             angle == 0 ? Transform.Identity : new RotateTransform(-angle);
         SysSpeakerPath.RenderTransform = speakerT;
