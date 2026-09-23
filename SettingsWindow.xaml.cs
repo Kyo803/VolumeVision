@@ -4,6 +4,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
+using WpfAnimatedGif;
 
 namespace VolumeOSD;
 
@@ -129,19 +130,25 @@ public partial class SettingsWindow : Window
                 {
                     try
                     {
-                        var bmp = new BitmapImage();
-                        bmp.BeginInit();
-                        bmp.UriSource = new Uri(file);
-                        bmp.CacheOption = BitmapCacheOption.OnLoad;
-                        bmp.EndInit();
                         if (file.EndsWith(".gif", StringComparison.OrdinalIgnoreCase))
                         {
-                            WpfAnimatedGif.ImageBehavior.SetAnimatedSource(img, bmp);
-                            WpfAnimatedGif.ImageBehavior.SetRepeatBehavior(img, System.Windows.Media.Animation.RepeatBehavior.Forever);
+                            // No CacheOption.OnLoad here: WpfAnimatedGif needs the
+                            // decoder to stream frames, otherwise it shows frame 1 only.
+                            var gif = new BitmapImage();
+                            gif.BeginInit();
+                            gif.UriSource = new Uri(file);
+                            gif.EndInit();
+                            ImageBehavior.SetAnimatedSource(img, gif);
+                            ImageBehavior.SetRepeatBehavior(img, System.Windows.Media.Animation.RepeatBehavior.Forever);
                         }
                         else
                         {
-                            WpfAnimatedGif.ImageBehavior.SetAnimatedSource(img, null);
+                            var bmp = new BitmapImage();
+                            bmp.BeginInit();
+                            bmp.UriSource = new Uri(file);
+                            bmp.CacheOption = BitmapCacheOption.OnLoad;
+                            bmp.EndInit();
+                            ImageBehavior.SetAnimatedSource(img, null);
                             img.Source = bmp;
                         }
                         img.Visibility = Visibility.Visible;
@@ -155,8 +162,11 @@ public partial class SettingsWindow : Window
                     img.Visibility = Visibility.Collapsed;
                 }
             }
+            // Art is only shown in "Animations Only" mode, where the real pill
+            // drops its solid glass — so the previews must not draw the opaque
+            // tint over the GIF either (it used to hide it completely).
             foreach (var tint in new[] { SysPreviewTint, SpotPreviewTint, LivePreviewTint })
-                if (tint != null) tint.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+                if (tint != null) tint.Visibility = Visibility.Collapsed;
         }
         catch { }
     }

@@ -96,10 +96,10 @@ public partial class GifLibrary : Window
         {
             if (path.EndsWith(".gif", StringComparison.OrdinalIgnoreCase))
             {
+                // No CacheOption.OnLoad: the GIF decoder must stream frames.
                 var bmp = new BitmapImage();
                 bmp.BeginInit();
                 bmp.UriSource = new Uri(path);
-                bmp.CacheOption = BitmapCacheOption.OnLoad;
                 bmp.EndInit();
                 ImageBehavior.SetAnimatedSource(img, bmp);
                 ImageBehavior.SetRepeatBehavior(img, RepeatBehavior.Forever);
