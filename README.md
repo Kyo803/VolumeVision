@@ -26,6 +26,7 @@ Run it → Next → Finish. No admin required.
 | `Alt+Z` / `Alt+C` | Previous / next track |
 | `Alt+Shift+Z` / `Alt+Shift+C` | System / media frame |
 | `Alt+Shift+A` / `Alt+Shift+D` | Nudge active slider |
+| `Alt+Shift+W` / `Alt+Shift+Q` | Next / previous wallpaper |
 | `Ctrl+Shift+V` | Summon · `Ctrl+Shift+S` settings · `Ctrl+Shift+Plus/Minus` resize |
 
 Right-click the tray icon for **Settings**, **GIF Library**, **Start with Windows** and **Uninstall**.
