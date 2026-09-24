@@ -5,3 +5,28 @@ dist/
 Publish/
 *.user
 .vs/
+
+# ---------------------------------------------------------------------------
+# The public repo ships ONLY the installer + docs.
+# Source code lives locally (and in a private repo) — these rules keep it from
+# being committed here again by accident.
+# ---------------------------------------------------------------------------
+*.cs
+*.xaml
+*.csproj
+*.sln
+*.iss
+Assets/
+Controls/
+Services/
+Styles/
+App.xaml
+MainWindow.xaml
+SettingsWindow.xaml
+WallpaperStudio.xaml
+GifLibrary.xaml
+ColorPickerDialog.xaml
+README.dev.md
+
+# But the published installer is intentionally tracked despite dist/ above.
+!dist/V^2-Setup-1.1.0.exe
