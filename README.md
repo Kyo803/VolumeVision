@@ -29,7 +29,9 @@ Run it → Next → Finish. No admin required.
 | `Alt+Shift+W` / `Alt+Shift+Q` | Next / previous wallpaper |
 | `Ctrl+Shift+V` | Summon · `Ctrl+Shift+S` settings · `Ctrl+Shift+Plus/Minus` resize |
 
-Right-click the tray icon for **Settings**, **GIF Library**, **Start with Windows** and **Uninstall**.
+Right-click the tray icon for **Settings**, **GIF Library**, **Hotkeys**, **Start with Windows** and **Uninstall**.
+
+**All of these are rebindable** — Settings → **Hotkeys…**: click a shortcut, press the new keys, done. Conflicts are flagged in red, and there's a **Reset to defaults** button.
 
 ## Starter GIFs
 
