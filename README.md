@@ -31,6 +31,18 @@ Run it → Next → Finish. No admin required.
 
 Right-click the tray icon for **Settings**, **GIF Library**, **Start with Windows** and **Uninstall**.
 
+## Starter GIFs
+
+Three ready-made animated wallpapers ship in [`gifs/`](gifs/) — **436 × 96**, the ideal pill size:
+
+| GIF | Look |
+|---|---|
+| `v2-wallpaper.gif` | Blue / indigo liquid drips |
+| `preset3.gif` | Yellow lava-lamp blobs |
+| `preset33.gif` | Pink / red flowing waves |
+
+Download them, drop them into `%AppData%\VolumeOSD\gifs\`, then open **Settings → GIF Library** (or press `Alt+Shift+W` to cycle). Tick **Animations Only** for full vibrancy. See [`gifs/README.md`](gifs/README.md).
+
 ## Custom art
 
 - **GIFs** → drop them in `%AppData%\VolumeOSD\gifs\` (or use the GIF Library window)
