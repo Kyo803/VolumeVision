@@ -4,7 +4,7 @@ A liquid-glass volume bar for Windows that replaces the stock OSD, with full Spo
 
 ## Download
 
-**[⬇ Download V² Setup](https://github.com/Kyo803/VolumeVision/releases/latest)** — or grab `V^2-Setup-1.1.0.exe` from the `dist/` folder in this repo.
+**[⬇ Download V² Setup](https://github.com/Kyo803/VolumeVision/releases/latest)** — or grab `V^2-Setup-1.2.0.exe` from the `dist/` folder in this repo.
 
 Run it → Next → Finish. No admin required.
 
@@ -12,7 +12,8 @@ Run it → Next → Finish. No admin required.
 
 - **Volume keys show V² instead of the Windows bar** — a liquid-glass pill, bottom-centre
 - **Media control** — Spotify (or any app playing: Chrome, Edge, Apple Music…): previous / play-pause / next, track title on hover, live album art, progress ring
-- **Per-app volume** — a second slider controls just the media app's volume
+- **Global system volume** — the system slider, volume keys and mute drive **every output device at once** (speakers, headphones, Bluetooth, virtual cables), and mute silences **every app on every device** — no more "muting the desktop leaves a player still playing". Toggleable in Settings → Volume.
+- **Per-app volume** — a second slider controls just the media app's volume, found on **any** output device the app happens to be playing through
 - **Wallpapers** — use any image or animated GIF behind the glass; built-in **GIF Library** and **Wallpaper Studio** (crop, draw, colour-grade, frame-by-frame animation, export GIF)
 - **Fully customizable** — colours, glass, gloss, frost, size, corner radius, border, track thickness, shadow, glow, plus 4 dock positions (bottom / top / left / right with 90° rotation)
 - **Lightweight** — starts with Windows, tray icon, near-zero CPU when idle

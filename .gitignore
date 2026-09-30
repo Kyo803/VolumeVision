@@ -29,4 +29,4 @@ ColorPickerDialog.xaml
 README.dev.md
 
 # But the published installer is intentionally tracked despite dist/ above.
-!dist/V^2-Setup-1.1.0.exe
+!dist/V^2-Setup-1.2.0.exe
